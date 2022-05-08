@@ -27,6 +27,7 @@ from ClosestBlock1 import Closest_Block
 import threading
 from socket import *
 import sys
+import traceback
 '''
 此代码中加入了client模块，用于向上位机传输实时检测结果的图像；接收端server.py的代码也在文件夹中
 client模块的具体格式：
@@ -49,7 +50,7 @@ def send_img(): #向主机发送数据
     sss.sendto(send_data, addr)
     # print(f'已发送{len(send_data)}Bytes的数据')
     # sss.close()
-
+'''
 def fabufa0():
     global faLock, faFlag, ser
     while True:
@@ -66,18 +67,18 @@ def fabufa0():
         faFlag = True
         faLock.release()
         time.sleep(0.1)
+'''
 
 def fabufa():
     # ser.settimeout(0)
     # data = ser.read(1024)
-    data = ser.read(1)
-    # print(data.decode())
-    if len(data.decode()) == 0:
-        return False
+    data = ser.read(1024)
+    print(data.decode())
+    if len(data.decode()) == 0: return False
     return True
 
 def detect(save_img=False):
-    global addr, faFlag
+    global addr, faFlag, send_data
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -110,7 +111,13 @@ def detect(save_img=False):
     if webcam:
         view_img = check_imshow()
         cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=imgsz)
+        Flagtry = True
+        while (Flagtry):
+            try:
+                dataset = LoadStreams(source, img_size=imgsz)
+                Flagtry = False
+            except:
+                traceback.print_exc()
     else:
         dataset = LoadImages(source, img_size=imgsz)
 
@@ -126,7 +133,7 @@ def detect(save_img=False):
     #ex = kalf.kalman()
 
     #client模块
-    addr = ('192.168.10.213', 8080)
+    addr = ('192.168.43.25', 8080)
     #client模块
 
     for path, img, im0s, vid_cap, imdal in dataset:
@@ -150,8 +157,10 @@ def detect(save_img=False):
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
 
+        faFlag2 = False
         if len(port_list) != 0 and False != ser.is_open:
             faFlag = fabufa()
+            faFlag2 = faFlag
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
@@ -175,9 +184,7 @@ def detect(save_img=False):
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
-                xy1=[int(0),int(0)]
-                xy2=[int(0),int(0)]
-                depsum=1000000001
+                depsum = float("inf")
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -196,77 +203,69 @@ def detect(save_img=False):
                         #修正选择一个平均距离最近框
                         sum1 = Closest_Block(imdal[i],getpoint)
                         if sum1 < depsum:
-                            depsum=sum1
-                            xy1[0] = int(getpoint[0][0])
-                            xy1[1] = int(getpoint[0][1])
-                            xy2[0] = int(getpoint[0][2])
-                            xy2[1] = int(getpoint[0][3])
-
-                        cv2.putText(im0, "pixel:{} ".format(time.time()), (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 255))
-
+                            depsum = sum1
+                            xy1 = [int(getpoint[0][0]), int(getpoint[0][1])]
+                            xy2 = [int(getpoint[0][2]), int(getpoint[0][3])]
                 #----------Modification Start---------
-                if xy2!=[]: #如果有识别到至少一个框
-                    Para, flag,mx,my = myHoughEllipse.HoughEllipse(im0,xy1,xy2) #识别白色的椭圆区域
-                    if flag == 0:
-                        continue
-                    horres,velres,l0,pix0 = AngleCal(imdal[i],mx,my) #计算角度
-                    l1 = np.sqrt(l0**2 - pix0[1]**2)
+                # if xy2 != []: # 如果有识别到至少一个框
+                Para, flag, mx, my = myHoughEllipse.HoughEllipse(im0, xy1, xy2) #识别白色的椭圆区域
+                if flag == 0: continue
+                horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
+                l1 = np.sqrt(l0**2 - pix0[1]**2)
 
-                    zitai = 1 #1为躺 0为立
-                    stand_str = "位姿为躺"
-                    direction = "None"
-                    if velres > -40:
-                        zitai =0
-                        stand_str = "位姿为立"
-                        if horres > 0:
-                            direction = "right"
-                        else:
-                            direction = "left"
+                zitai = 1 #1为躺 0为立
+                stand_str = "位姿为躺"
+                direction = "None"
+                if velres > -40:
+                    zitai =0
+                    stand_str = "位姿为立"
+                    if horres > 0: direction = "right"
+                    else: direction = "left"
 
-                    # print("距中心的距离为", l0)
-                    # print("距中心的水平距离为", l1)
-                    # print("以相机为基准的方位坐标为", pix0)
-                    # print("水平偏角为:", horres, direction)
-                    # print("俯仰偏角为:", velres, stand_str)
-
-                    #Serial Block
-
-                    if len(port_list) != 0 and False != ser.is_open and faFlag\
-                             and l0 < 1.5 and not math.isnan(l1) and not math.isnan(horres):
-                        # unit is millimeter
-                        # poststr = str(int(l1 * 1000)) + "#" + str(int(horres * 1000)) + "#" + str(zitai)
-                        # for i in range(len(pix0)): poststr += "#" + str(int(pix0[i] * 1000))
-                        poststr = str(l1 * 1000) + "#" + str(horres * 1000) + "#" + str(zitai)
-                        for i in range(len(pix0)): poststr += "#" + str(pix0[i] * 1000)
-                        _ = ser.write(poststr.encode())
-                        print("发送成功")
-                        # faLock.acquire()
-                        # faFlag = False
-                        # faLock.release()
-        if faFlag:
+                print("距中心的距离为", l0)
+                print("距中心的水平距离为", l1)
+                print("以相机为基准的方位坐标为", pix0)
+                print("水平偏角为:", horres, direction)
+                print("俯仰偏角为:", velres, stand_str)
+                sys.stdout.flush()
+                cv2.circle(img, (pix0[0], pix0[1]), 3, (0,101,255), -1)
+                cv2.putText(img,
+                            '{}[H:{}Degree]'.format(['stand' ,'lie down'][zitai], int(horres)),
+                            (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (252,218,252), 2)
+                #Serial Block
+                if len(port_list) != 0 and False != ser.is_open and faFlag \
+                        and not math.isnan(l1) and not math.isnan(horres):
+                        # and l0 < 3 and not math.isnan(l1) and not math.isnan(horres):
+                    # unit is millimeter
+                    poststr = str(l1 * 1000) + "#" + str(horres * 1000) + "#" + str(zitai)
+                    for i in range(len(pix0)): poststr += "#" + str(pix0[i] * 1000)
+                    faFlag2 = False
+                    print("发送成功")
+                    _ = ser.write(poststr.encode())
+                    # faLock.acquire()
+                    # faFlag = False
+                    # faLock.release()
+        if faFlag2:
             poststr = str("N")
-            _ = ser.write(poststr.encode())
             print("发送N")
-            # faFlag = False
+            _ = ser.write(poststr.encode())
+
 
         if view_img:
             # cv2.imshow(str(p), im0)
 
             # client模块
             img = im0
-
             th = threading.Thread(target=send_img)
             th.setDaemon(True)
-
-            global send_data
             _, send_data = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 50])
             # print(send_data.size)
             th.start()
             # cv2.putText(img, "client", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             # cv2.imshow('client_frame', img)
+            # cv2.waitKey(1)  # 1 millisecond
             # client模块
 
-            # cv2.waitKey(1)  # 1 millisecond
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
@@ -275,6 +274,9 @@ def detect(save_img=False):
 
 
 if __name__ == '__main__':
+    '''send message'''
+    # os.system("nmcli device wifi connect yanzhixue password 12344321 ifname wlan0")
+    # print("Wifi Connected!")
     # to PC
     sss = socket(AF_INET, SOCK_DGRAM)
 
@@ -284,13 +286,14 @@ if __name__ == '__main__':
         print("无可用串口!!!")
     else:
         for i in range(len(port_list)): print(port_list)
-        ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=0) # None
-        print("串口参数：", ser)
+        # ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=0) # None
+        ser = serial.Serial("/dev/ttyUSB0", 9600, timeout=0)
         if (False == ser.is_open):
             ser = -1
             print("ttyUSB open failed.")
+        print("串口参数：", ser)
         # faFlag = False
-        faLock = threading.RLock()
+        # faLock = threading.RLock()
         # t = threading.Thread(target=fabufa, args=()).start()
 
     cv2.VideoCapture(1)
