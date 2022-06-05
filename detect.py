@@ -133,7 +133,7 @@ def detect(save_img=False):
     #ex = kalf.kalman()
 
     #client模块
-    addr = ('192.168.43.25', 8080)
+    addr = ('192.168.10.217', 8080)
     #client模块
 
     for path, img, im0s, vid_cap, imdal in dataset:
@@ -228,11 +228,14 @@ def detect(save_img=False):
                 print("水平偏角为:", horres, direction)
                 print("俯仰偏角为:", velres, stand_str)
                 sys.stdout.flush()
-                cv2.circle(img, (pix0[0], pix0[1]), 3, (0,101,255), -1)
-                cv2.putText(img,
-                            '{}[H:{}Degree]'.format(['stand' ,'lie down'][zitai], int(horres)),
-                            (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (252,218,252), 2)
-                #Serial Block
+
+                cv2.circle(im0, (int(pix0[0]), int(pix0[1])), 3, (0,101,255), -1)
+                if not math.isnan(horres): txt = int(horres)
+                else: txt = horres
+                cv2.putText(im0,
+                            '{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt),
+                            (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (252, 218, 252), 2)
+                # Serial Block
                 if len(port_list) != 0 and False != ser.is_open and faFlag \
                         and not math.isnan(l1) and not math.isnan(horres):
                         # and l0 < 3 and not math.isnan(l1) and not math.isnan(horres):
