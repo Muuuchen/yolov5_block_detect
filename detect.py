@@ -232,7 +232,7 @@ def detect(save_img=False):
                 print("俯仰偏角为:", velres, stand_str)
                 sys.stdout.flush()
 
-                cv2.circle(im0, (int(pix0[0]), int(pix0[1])), 3, (0,101,255), -1)
+                cv2.circle(im0, (int(mx), int(my)), 3, (0,101,255), -1)
                 if not math.isnan(horres): txt = int(horres)
                 else: txt = horres
                 cv2.putText(im0,
