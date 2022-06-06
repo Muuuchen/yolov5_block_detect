@@ -133,7 +133,10 @@ def detect(save_img=False):
     #ex = kalf.kalman()
 
     #client模块
-    addr = ('192.168.10.217', 8080)
+    try:
+        addr = (str(sys.argv[1]), 8080)
+    except:
+        addr = ('192.168.10.213', 8080)          # 127.0.0.1表示本机的IP，相当于我和“自己”的关系
     #client模块
 
     for path, img, im0s, vid_cap, imdal in dataset:
