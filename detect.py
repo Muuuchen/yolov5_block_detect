@@ -27,6 +27,7 @@ from ClosestBlock1 import Closest_Block
 import threading
 from socket import *
 import sys
+from F_B_cal import Front_and_Back_Cal
 import traceback
 '''
 此代码中加入了client模块，用于向上位机传输实时检测结果的图像；接收端server.py的代码也在文件夹中
@@ -133,7 +134,7 @@ def detect(save_img=False):
     #ex = kalf.kalman()
 
     #client模块
-    addr = ('192.168.10.217', 8080)
+    addr = ('192.168.10.202', 8080)
     #client模块
 
     for path, img, im0s, vid_cap, imdal in dataset:
@@ -182,9 +183,13 @@ def detect(save_img=False):
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
+                dm=cv2.applyColorMap(cv2.convertScaleAbs(vid_cap[i],alpha=0.03),cv2.COLORMAP_JET)
+                dm1 = cv2.inRange(vid_cap[i],0,100)
+                cv2.imshow("deep1",dm1)
+                cv2.imshow("deep",vid_cap[i])
                 # Write results
                 depsum = float("inf")
+                start = time.time()
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -208,8 +213,19 @@ def detect(save_img=False):
                             xy2 = [int(getpoint[0][2]), int(getpoint[0][3])]
                 #----------Modification Start---------
                 # if xy2 != []: # 如果有识别到至少一个框
-                Para, flag, mx, my = myHoughEllipse.HoughEllipse(im0, xy1, xy2) #识别白色的椭圆区域
+
+                
+                Para, flag, mx, my, ellipse_num = myHoughEllipse.HoughEllipse(im0, xy1, xy2) #识别白色的椭圆区域
                 if flag == 0: continue
+                if ellipse_num == 0: 
+                    print("no Ellipse")
+                    continue                    
+                if(abs(xy1[1]-xy2[1])/abs(xy2[0]-xy1[0]) < 1):
+                    print("lying")
+                else:
+                    print("standing")  
+
+                F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint)	
                 horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
 
@@ -221,12 +237,13 @@ def detect(save_img=False):
                     stand_str = "位姿为立"
                     if horres > 0: direction = "right"
                     else: direction = "left"
-
+                print("F_B_STATE",F_B_pos)
                 print("距中心的距离为", l0)
                 print("距中心的水平距离为", l1)
                 print("以相机为基准的方位坐标为", pix0)
                 print("水平偏角为:", horres, direction)
                 print("俯仰偏角为:", velres, stand_str)
+                print("Time Cost:", time.time()-start)
                 sys.stdout.flush()
 
                 cv2.circle(im0, (int(pix0[0]), int(pix0[1])), 3, (0,101,255), -1)
@@ -235,6 +252,7 @@ def detect(save_img=False):
                 cv2.putText(im0,
                             '{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt),
                             (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (252, 218, 252), 2)
+                cv2.imshow("HHHHHHHHHH",im0)
                 # Serial Block
                 if len(port_list) != 0 and False != ser.is_open and faFlag \
                         and not math.isnan(l1) and not math.isnan(horres):

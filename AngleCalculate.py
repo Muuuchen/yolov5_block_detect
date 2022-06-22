@@ -35,7 +35,6 @@ def AngleCal(depth_frame,mx,my):
             theta.append((b - a) / 2)
 
     theta = np.array(theta[1:])
-
     if horres == 0 or horres:
         horres = np.mean(theta)
     else:
