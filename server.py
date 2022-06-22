@@ -1,10 +1,14 @@
 import numpy as np
 import cv2
 from socket import *
+import sys
 
 
 s = socket(AF_INET, SOCK_DGRAM)
-addr = ('192.168.10.213', 8080)          # 127.0.0.1表示本机的IP，相当于我和“自己”的关系
+try:
+    addr = (str(sys.argv[1]), 8080)
+except:
+    addr = ('192.168.10.213', 8080)          # 127.0.0.1表示本机的IP，相当于我和“自己”的关系
 s.bind(addr)
 while True:
     data, _ = s.recvfrom(921600)

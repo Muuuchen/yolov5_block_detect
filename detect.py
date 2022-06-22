@@ -134,7 +134,14 @@ def detect(save_img=False):
     #ex = kalf.kalman()
 
     #client模块
+<<<<<<< HEAD
     addr = ('192.168.10.202', 8080)
+=======
+    try:
+        addr = (str(sys.argv[1]), 8080)
+    except:
+        addr = ('192.168.10.213', 8080)          # 127.0.0.1表示本机的IP，相当于我和“自己”的关系
+>>>>>>> e7f9ebea9eb611f7c72e09a67e9690aac9dea3f4
     #client模块
 
     for path, img, im0s, vid_cap, imdal in dataset:
@@ -246,7 +253,7 @@ def detect(save_img=False):
                 print("Time Cost:", time.time()-start)
                 sys.stdout.flush()
 
-                cv2.circle(im0, (int(pix0[0]), int(pix0[1])), 3, (0,101,255), -1)
+                cv2.circle(im0, (int(mx), int(my)), 3, (0,101,255), -1)
                 if not math.isnan(horres): txt = int(horres)
                 else: txt = horres
                 cv2.putText(im0,
