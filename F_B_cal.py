@@ -18,8 +18,8 @@ def adapty(x):
 
 #判断蓝色
 def inblue(a):
-    low_hsv = np.array([78, 113, 38], dtype=np.uint8)
-    upper_hsv = np.array([116, 255, 255], dtype=np.uint8)
+    low_hsv = np.array([48, 43, 0], dtype=np.uint8)
+    upper_hsv = np.array([144, 255, 255], dtype=np.uint8)
     pd = 1
     for i in range(0,3):
         if a[i]<low_hsv[i] or a[i]>upper_hsv[i]:
@@ -49,6 +49,18 @@ def Front_and_Back_Cal(imcol,imdep,mx,my,getpoint):
     sumb = 0
     for i in range(0,my-y1):
         dis, c =specify(imdep,mx,my-i)
+        if abs(nowdepth-dis)>0.25:
+            break
+        sum = sum + 1
+        sumb = sumb + inblue( imhsv[my-i][mx] )
+
+    if sumb!=0 and sum/sumb<10:
+        return 1
+
+    sum = 0
+    sumb = 0
+    for i in range(0,y2-my):
+        dis, c =specify(imdep,mx,my+i)
         if abs(nowdepth-dis)>0.25:
             break
         sum = sum + 1
