@@ -1,54 +1,86 @@
+import cv2
 import numpy as np
-import pyrealsense2 as rs
-
-def specify(depth_frame, xx, yy):
-    deep = depth_frame.get_distance(xx, yy)
-    depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
-    camera_coordinate = rs.rs2_deproject_pixel_to_point(depth_intrin, [xx, yy],
-                                                        deep)
-    camera_coordinate = np.array(camera_coordinate)
-    dis = np.linalg.norm(camera_coordinate)
-    return dis,camera_coordinate
 
 def adaptx(x):
     return max(min(x,639),0)
 def adapty(x):
     return max(min(x,479),0)
 
-#返回一个识别框的平均深度
-def Closest_Block(imdep,getpoint):
-    x1 = int(getpoint[0][0])
-    y1 = int(getpoint[0][1])
-    x2 = int(getpoint[0][2])
-    y2 = int(getpoint[0][3])
-    if x1<0 or x1>=640 or x2<0 or x2>=640 or x1 > x2:
-        x1 = adaptx(x1)
-        x2 = adaptx(x2)
-    if y1 < 0 or y1 >= 480 or y2 < 0 or y2 >= 480 or y1 > y2:
-        y1 = adapty(y1)
-        y2 = adapty(y2)
-    mx = int((x1+x2)/2)
-    my = int((y1+y2)/2)
-    mk,c = specify(imdep, mx, my)
-    sum = mk
-    sump = 1
-    for i in range(1,min(min(x2-mx,mx-x1),20)):
-        dis, c =specify(imdep,mx-i,my)
-        if abs(dis-mk) <= 0.5:
-            sum=sum+dis
-            sump=sump+1
-        dis, c =specify(imdep,mx+i,my)
-        if abs(dis-mk) <= 0.5:
-            sum=sum+dis
-            sump=sump+1
-    for i in range(1,min(min(y2-my,my-y1),20)):
-        dis, c =specify(imdep,mx,my-i)
-        if abs(dis-mk) <= 0.5:
-            sum=sum+dis
-            sump=sump+1
-        dis, c =specify(imdep,mx,my+i)
-        if abs(dis-mk) <= 0.5:
-            sum=sum+dis
-            sump=sump+1
+def cnt_area(cnt):
+    area = cv2.contourArea(cnt)
+    return area
 
-    return sum/sump
+def Closest_Block(imgdep, img, getpoint):
+    l = adaptx(int(getpoint[0][0]))
+    u = adapty(int(getpoint[0][1]))
+    r = adaptx(int(getpoint[0][2]))
+    d = adapty(int(getpoint[0][3]))
+    if ((r-l)*(d-u)<=30*30):
+        return float("inf")
+    #print(l,r,u,d)
+
+    # get the rectangle of block
+    Rect = np.array([[l, u], [l, d], [r, d], [r, u]])
+    img_zero = np.zeros(img.shape, np.uint8)
+    img_roi = cv2.fillConvexPoly(img_zero, Rect, (255, 255, 255))
+    img = cv2.bitwise_and(img, img_roi)
+
+    x1 = int((l + r)/2)
+    y1 = int((u + d)/2)
+    p = int(imgdep[y1][x1])
+    imdep1 = cv2.inRange(imgdep,max(p-150,1),p+150)
+
+    imgdep_zero = np.zeros(imgdep.shape,np.uint8)
+    imgdep_roi = cv2.fillConvexPoly(imgdep_zero, Rect, (255))
+    imdep1 = cv2.bitwise_and(imdep1,imgdep_roi)
+    imdep1 = cv2.erode(imdep1, (3, 3), iterations=1)
+    imdep1 = cv2.dilate(imdep1, (21, 21), iterations=1)
+
+    # image processing
+    Gaus = cv2.GaussianBlur(img, (7, 7), 0)
+    imghsv = cv2.cvtColor(Gaus, cv2.COLOR_BGR2HSV)
+
+    # blue hsv h(78,116) s(113,255) v(38,255)
+    low_hsv_b = np.array([48, 43, 0], dtype=np.uint8)
+    high_hsv_b = np.array([144, 255, 255], dtype=np.uint8)
+    mask = cv2.inRange(imghsv, low_hsv_b, high_hsv_b)
+    #cv2.imshow("Blue Mask", mask)
+    #cv2.imshow("depmask",imdep1)
+    mask = cv2.bitwise_xor(mask,imdep1)
+
+    erosion = cv2.erode(mask, (3, 3), iterations=1)
+    dilation = cv2.dilate(erosion, (3, 3), iterations=1)
+    mask = dilation
+
+    #将四周往里面缩一点
+    Rect1 = np.array([[l, u], [l, u+5], [r, u+5], [r, u]])
+    Rect2 = np.array([[l, d-5], [l, d], [r, d], [r, d-5]])
+    Rect3 = np.array([[l, u], [l, d], [l+5, d], [l+5, u]])
+    Rect4 = np.array([[r-5, u], [r-5, d], [r, d], [r, u]])
+    mask = cv2.fillConvexPoly(mask, Rect1, (0, 0, 0))
+    mask = cv2.fillConvexPoly(mask, Rect2, (0, 0, 0))
+    mask = cv2.fillConvexPoly(mask, Rect3, (0, 0, 0))
+    mask = cv2.fillConvexPoly(mask, Rect4, (0, 0, 0))
+
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    contours = sorted(contours, key=cnt_area, reverse=True)
+    cont = contours[0]
+    flag = 0
+    cX = 0
+    cY = 0
+    if (cnt_area(cont)*8>(r-l)*(d-u)):
+        flag = 1
+        M = cv2.moments(cont)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        cv2.circle(img, (cX, cY), 7, (255, 255, 255), -1)
+        if imgdep[cY][cX]!=0:
+            return imgdep[y1][x1]
+        else:
+            return float("inf")
+    else:
+        if imgdep[y1][x1]!=0:
+            return imgdep[y1][x1]
+        else:
+            return float("inf")
