@@ -1,28 +1,5 @@
-import math
 import cv2
 import numpy as np
-
-
-def CalVariance(para, actual):  # ming tian shishi jiaodain ju li de wucha gusuan fangshi
-    x = para[0][0]
-    y = para[0][1]
-    a = para[1][0]
-    b = para[1][1]
-    theta = (para[2] / 180) * math.pi
-
-    if a < 30 or b < 30:
-        return float("inf")
-    A = (a ** 2) * (math.sin(theta) ** 2) + (b ** 2) * (math.cos(theta) ** 2)
-    B = 2 * (a ** 2 - b ** 2) * math.sin(theta) * math.cos(theta)
-    C = (a ** 2) * (math.cos(theta) ** 2) + (b ** 2) * (math.sin(theta) ** 2)
-    f = -a ** 2 * b ** 2
-    mVar = []
-    for each in actual:
-        ax = each[0][0]
-        ay = each[0][1]
-        Var = (A * (ax - x) ** 2 + B * (ax - x) * (ay - y) + C * (ay - y) ** 2 + f) / (A * C)
-        mVar.append(Var)
-    return abs(np.mean(mVar))
 
 def cnt_area(cnt):
     area = cv2.contourArea(cnt)
@@ -43,12 +20,10 @@ def HoughEllipse(img, xy1, xy2, imgdep):
     x1 = int((l + r)/2)
     y1 = int((u + d)/2)
     p = int(imgdep[y1][x1])
-    print(type(p))
-    imdep1 = cv2.inRange(imgdep,max(p-150,0),p+300)
+    imdep1 = cv2.inRange(imgdep,max(p-150,1),p+150)
 
     imgdep_zero = np.zeros(imgdep.shape,np.uint8)
     imgdep_roi = cv2.fillConvexPoly(imgdep_zero, Rect, (255))
-    print(type(imdep1[0][0]),type(imgdep_roi[0][0]))
     imdep1 = cv2.bitwise_and(imdep1,imgdep_roi)
     imdep1 = cv2.erode(imdep1, (3, 3), iterations=1)
     imdep1 = cv2.dilate(imdep1, (21, 21), iterations=1)
@@ -62,11 +37,12 @@ def HoughEllipse(img, xy1, xy2, imgdep):
     high_hsv_b = np.array([144, 255, 255], dtype=np.uint8)
     mask = cv2.inRange(imghsv, low_hsv_b, high_hsv_b)
     #cv2.imshow("Blue Mask", mask)
+    #cv2.imshow("depmask",imdep1)
     mask = cv2.bitwise_xor(mask,imdep1)
 
-    erosion = cv2.erode(mask, (9, 9), iterations=1)
-    dilation = cv2.dilate(mask, (9, 9), iterations=1)
-    mask = cv2.erode(mask, (21, 21), iterations=1)
+    erosion = cv2.erode(mask, (3, 3), iterations=1)
+    dilation = cv2.dilate(erosion, (3, 3), iterations=1)
+    mask = dilation
 
     #将四周往里面缩一点
     Rect1 = np.array([[l, u], [l, u+5], [r, u+5], [r, u]])
@@ -78,7 +54,7 @@ def HoughEllipse(img, xy1, xy2, imgdep):
     mask = cv2.fillConvexPoly(mask, Rect3, (0, 0, 0))
     mask = cv2.fillConvexPoly(mask, Rect4, (0, 0, 0))
     #
-    #cv2.imshow("Final Mask",mask)
+    cv2.imshow("Final Mask",mask)
     #
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
