@@ -174,6 +174,7 @@ def detect(save_img=False):
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
             im1 = np.copy(im0)
+            #im0不画框，im1画框和最后imshow
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
@@ -203,32 +204,28 @@ def detect(save_img=False):
 
                         label = f'{names[int(cls)]} {conf:.2f}'
                         #画框函数
-                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
+                        plot_one_box(xyxy, im1, label=label, color=colors[int(cls)], line_thickness=3)
 
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
                         getpoint = torch.tensor(xyxy).view(1, 4)
                         getpoint = getpoint.numpy()
                         #修正选择一个平均距离最近框
-                        sum1 = Closest_Block(imdal[i],getpoint)
+                        sum1 = Closest_Block(vid_cap[i], im0, getpoint)
+                        print(sum1)
                         if sum1 < depsum:
                             depsum = sum1
                             xy1 = [int(getpoint[0][0]), int(getpoint[0][1])]
                             xy2 = [int(getpoint[0][2]), int(getpoint[0][3])]
+                print("------")
                 #----------Modification Start---------
                 # if xy2 != []: # 如果有识别到至少一个框
+                if depsum == float("inf"):
+                    continue
                 flag, mx, my = myHoughEllipse.HoughEllipse(im0, xy1, xy2, vid_cap[i]) #识别白色的椭圆区域
                 if flag == 0: continue
                 horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint)
-                ###输出部分
-                if F_B_pos == 1:
-                    print("FFFFFFFfff正面")
-                else:
-                    if F_B_pos == 0:
-                        print("FFFFFFFfff反面")
-                    else:
-                        print("FFFFFFfff不能判断")
 
                 if velres <= -40:
                     print("躺")
@@ -260,11 +257,11 @@ def detect(save_img=False):
                 # print("俯仰偏角为:", velres, stand_str)
                 sys.stdout.flush()
 
-                cv2.circle(im0, (int(mx), int(my)), 8, (0, 101, 255), -1)
+                cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
                 # cv2.circle(im0, (int(pix0[0]), int(pix0[1])), 10, (0,101,255), -1)
                 if not math.isnan(horres): txt = int(horres)
                 else: txt = horres
-                cv2.putText(im0,
+                cv2.putText(im1,
                             '{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt),
                             (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (252, 218, 252), 2)
                 # Serial Block
@@ -287,10 +284,10 @@ def detect(save_img=False):
 
 
         if view_img:
-            cv2.imshow(str(p), im0)
+            cv2.imshow(str(p), im1)
 
             # client模块
-            img = im0
+            img = im1
             th = threading.Thread(target=send_img)
             th.setDaemon(True)
             _, send_data = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 50])
