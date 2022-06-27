@@ -19,7 +19,7 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
         return float("inf"), 0, (l+r)/2,(u+d)/2, 0
     #print(l,r,u,d)
     # blue 1   Red 0
-    RB = np.array([[[129, 57, 109], [179, 255, 255]], [[48, 43, 0], [144, 255, 255]]], dtype=np.uint8)
+    RB = np.array([[[129, 57, 84], [179, 255, 255]], [[48, 43, 0], [144, 255, 255]]], dtype=np.uint8)
 
     # get the rectangle of block
     Rect = np.array([[l, u], [l, d], [r, d], [r, u]])
