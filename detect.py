@@ -37,7 +37,7 @@ client模块的具体格式：
 code
 #client模块
 '''
-
+blockSize_obj = Camera.blockSize()
 def specify(depth_frame, xx, yy):
     deep = depth_frame.get_distance(xx, yy)
     depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
