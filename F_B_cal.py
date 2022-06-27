@@ -31,7 +31,7 @@ def Front_and_Back_Cal(imcol,imdep,mx,my,getpoint,colorflag):
     y1 = int(getpoint[0][1])
     x2 = int(getpoint[0][2])
     y2 = int(getpoint[0][3])
-    RB = np.array([[[129, 57, 109], [179, 255, 255]], [[48, 43, 0], [144, 255, 255]]], dtype=np.uint8)
+    RB = np.array([[[129, 57, 84], [179, 255, 255]], [[48, 43, 0], [144, 255, 255]]], dtype=np.uint8)
     if mx < 0 or mx >= 640 or my < 0 or my >= 480:
         return -1
     if x1<0 or x1>=640 or x2<0 or x2>=640 or x1 > x2:
