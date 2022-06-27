@@ -29,6 +29,7 @@ import threading
 from socket import *
 import sys
 import traceback
+import Camera
 '''
 此代码中加入了client模块，用于向上位机传输实时检测结果的图像；接收端server.py的代码也在文件夹中
 client模块的具体格式：
@@ -205,7 +206,13 @@ def detect(save_img=False):
                         #修正选择一个平均距离最近框\
                         #sum1 mid point sort, cX,cY M zhi xin
                         sum1,flag_temp, cX,cY,isside_temp = Closest_Block(vid_cap[i], im0, getpoint,colorflag)
-                        #print(sum1)
+                        diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i][int(cY)][int(cX)])
+                        '''
+                        diameter = blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4],
+                                                           vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)]\
+                                                               [int((getpoint[0, 0]+getpoint[0, 2])/2)])
+                        '''
+                        print(colorflag, diameter)
                         if sum1 < depsum:
                             depsum = sum1
                             mx = int(cX)
