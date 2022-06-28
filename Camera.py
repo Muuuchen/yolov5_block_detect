@@ -105,7 +105,7 @@ class blockSize(myCamera):
 
     def blockSize2(self, Point1, Point2, Ztemp):
         '''
-        left\down\right\left four point to calculate
+        left\down\right\left four point to calculate, undistorted
         :param Point1: pixel
         :param Point2: pixel
         :param Ztemp: millimeter
@@ -122,19 +122,22 @@ class blockSize(myCamera):
         PR = self.specify(P2[0, 0], (P1[1,0]+P2[1, 0])/2, Z)
         Len = np.linalg.norm(PU - PD)
         Wid = np.linalg.norm(PL - PR)
+        self.temp.append([Z, max(Len, Wid)])
+        # np.savetxt("./test.txt", np.asarray(self.temp), fmt='%.6f')
+        '''
+                if(Z>7):
+                    return max(Len, Wid)
+                elif(Z<3.5):
+                    return max(Len, Wid) * (1 + Z / 3.5 * 0.1)
+                else:
+                    return max(Len, Wid)*(1+(7-Z)/3.5 * 0.1)
+                '''
+        return max(Len, Wid)
 
+    def myreturn(self):
         # self.temp = np.append(self.temp, np.array([[[Z,max(Len, Wid)]]]))
         # np.savetxt("./test.txt", self.temp)
-        self.temp.append([Z, max(Len, Wid)])
-        np.savetxt("./test.txt", np.asarray(self.temp), fmt='%.6f')
-        '''
-        if(Z>7):
-            return max(Len, Wid)
-        elif(Z<3.5):
-            return max(Len, Wid) * (1 + Z / 3.5 * 0.1)
-        else:
-            return max(Len, Wid)*(1+(7-Z)/3.5 * 0.1)
-        '''
+        return self.temp[-1]
 
     def blockSize3(self, Point1, Point2, Ztemp):
         '''
@@ -155,6 +158,7 @@ class blockSize(myCamera):
         PR = super().specify(P2[0, 0], (P1[1,0]+P2[1, 0])/2, Z)
         Len = np.linalg.norm(PU - PD)
         Wid = np.linalg.norm(PL - PR)
+        return max(Len, Wid)
 
 
 
