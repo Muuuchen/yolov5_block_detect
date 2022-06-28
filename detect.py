@@ -38,6 +38,8 @@ code
 #client模块
 '''
 blockSize_obj = Camera.blockSize()
+tempList = []
+
 def specify(depth_frame, xx, yy):
     deep = depth_frame.get_distance(xx, yy)
     depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
@@ -207,6 +209,7 @@ def detect(save_img=False):
                         #sum1 mid point sort, cX,cY M zhi xin
                         sum1,flag_temp, cX,cY,isside_temp = Closest_Block(vid_cap[i], im0, getpoint,colorflag)
                         diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i][int(cY)][int(cX)])
+
                         '''
                         diameter = blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4],
                                                            vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)]\
@@ -214,9 +217,11 @@ def detect(save_img=False):
                         '''
                         print(colorflag, diameter)
                         if sum1 < depsum:
+                            listElement = blockSize_obj.myreturn()
                             depsum = sum1
                             mx = int(cX)
                             my = int(cY)
+
                             flag = flag_temp
                             colorflag_dest = colorflag
                             isside = isside_temp
@@ -227,6 +232,8 @@ def detect(save_img=False):
                     continue
                 if flag == 0:
                     continue
+                if float(listElement[1]) > 1e-4 :tempList.append(listElement)
+                np.savetxt("./datatest/test_down.txt", np.asarray(tempList), fmt='%.6f')
                 horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint,colorflag_dest)
