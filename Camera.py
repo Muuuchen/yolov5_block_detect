@@ -124,7 +124,7 @@ class blockSize(myCamera):
         Len = np.linalg.norm(PU - PD)
         Wid = np.linalg.norm(PL - PR)
         self.temp.append([Z, max(Len, Wid)])
-        PerError = 1 if not flagFix else self.Fix(Z)
+        PerError = 0 if not flagFix else self.Fix(Z)
         return max(Len, Wid) / (1 + PerError)
 
     def myreturn(self):
