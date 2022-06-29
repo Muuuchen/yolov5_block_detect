@@ -82,6 +82,7 @@ class blockSize(myCamera):
         unkown = np.linalg.pinv(A).dot(self.K3) * Z
         return np.array([[unkown[1][0]], [unkown[2][0]], [Z]])
 
+
     def blockSize(self, Point1, Point2, Ztemp):
         '''
         leftuper\leftdow\rightup\leftdown four point to calculate
@@ -103,7 +104,7 @@ class blockSize(myCamera):
         Wid = np.linalg.norm(PLU - PLD)
         return max(Len, Wid)
 
-    def blockSize2(self, Point1, Point2, Ztemp):
+    def blockSize2(self, Point1, Point2, Ztemp, flagFix = True):
         '''
         left\down\right\left four point to calculate, undistorted
         :param Point1: pixel
@@ -123,16 +124,8 @@ class blockSize(myCamera):
         Len = np.linalg.norm(PU - PD)
         Wid = np.linalg.norm(PL - PR)
         self.temp.append([Z, max(Len, Wid)])
-        # np.savetxt("./test.txt", np.asarray(self.temp), fmt='%.6f')
-        '''
-                if(Z>7):
-                    return max(Len, Wid)
-                elif(Z<3.5):
-                    return max(Len, Wid) * (1 + Z / 3.5 * 0.1)
-                else:
-                    return max(Len, Wid)*(1+(7-Z)/3.5 * 0.1)
-                '''
-        return max(Len, Wid)
+        PerError = 1 if not flagFix else self.Fix(Z)
+        return max(Len, Wid) / (1 + PerError)
 
     def myreturn(self):
         # self.temp = np.append(self.temp, np.array([[[Z,max(Len, Wid)]]]))
@@ -159,6 +152,9 @@ class blockSize(myCamera):
         Len = np.linalg.norm(PU - PD)
         Wid = np.linalg.norm(PL - PR)
         return max(Len, Wid)
+
+    def Fix(self, Z):
+        return -0.03168283 * Z + 0.00886965
 
 
 
