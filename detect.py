@@ -39,6 +39,7 @@ code
 '''
 blockSize_obj = Camera.blockSize()
 tempList = []
+imshowFlag = True
 
 def specify(depth_frame, xx, yy):
     deep = depth_frame.get_distance(xx, yy)
@@ -195,6 +196,7 @@ def detect(save_img=False):
 
                 # Write results
                 depsum = float("inf")
+                maxSize = 0
                 for *xyxy, conf, cls in reversed(det):
                     if save_img or view_img:  # Add bbox to image
                         t0 = time.time()
@@ -215,31 +217,31 @@ def detect(save_img=False):
                                                            vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)]\
                                                                [int((getpoint[0, 0]+getpoint[0, 2])/2)])
                         '''
-                        print(colorflag, diameter)
                         if sum1 < depsum:
-                            listElement = blockSize_obj.myreturn()
+                        # if maxSize <= diameter:
+                            listElement = blockSize_obj.tempreturn()
                             depsum = sum1
                             mx = int(cX)
                             my = int(cY)
-
+                            maxSize = diameter
                             flag = flag_temp
                             colorflag_dest = colorflag
                             isside = isside_temp
                 print("------")
+
                 #----------Modification Start---------
-                # if xy2 != []: # 如果有识别到至少一个框
-                if depsum == float("inf"):
-                    continue
-                if flag == 0:
-                    continue
-                if float(listElement[1]) > 1e-4 :tempList.append(listElement)
+                if depsum == float("inf") or flag == 0: continue
+                if float(listElement[1]) > 1e-4: tempList.append(listElement)
+                # blockSize_obj.tempShow(tempList)
+                print(colorflag, maxSize)
+
                 np.savetxt("./datatest/test_down.txt", np.asarray(tempList), fmt='%.6f')
                 horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint,colorflag_dest)
                 if isside == 1:
                     print("side")
-                    continue
+                    #continue
                 if velres <= -40:
                     print("躺")
                 else:
@@ -297,7 +299,8 @@ def detect(save_img=False):
 
 
         if view_img:
-            cv2.imshow(str(p), im1)
+
+            if imshowFlag: cv2.imshow(str(p), im1)
 
             # client模块
             img = im1
