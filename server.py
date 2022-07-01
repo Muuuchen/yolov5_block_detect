@@ -1,3 +1,5 @@
+import traceback
+
 import numpy as np
 import cv2
 from socket import *
@@ -26,12 +28,13 @@ class server():
 
     def setAddr(self, ipLocal = None, portLocal = None):
         ip = ipLocal if not ipLocal == None else ipDefault
-        port = int(portLocal) if not portLocal == None else portDefault
+        port = int(portLocal) if not portLocal == None and not portLocal == 'None' else portDefault
         try:
             addr = (ip, port)
             assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", addr[0]))
             print("ip {} port {} set suceess.".format(addr[0], addr[1]))
         except:
+            traceback.print_exc()
             addr = (ipDefault, portDefault)
             print("ip {} port {} set suceess.".format(addr[0], addr[1]))
         assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", addr[0]))
