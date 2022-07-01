@@ -5,7 +5,7 @@ import sys
 import re
 
 ipDefault = '192.168.43.25'
-port = 8083
+port = 8080
 
 class server():
     def __init__(self):
