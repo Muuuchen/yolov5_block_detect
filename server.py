@@ -3,14 +3,16 @@ import cv2
 from socket import *
 import sys
 import re
+import argparse
+import os
 
 ipDefault = '192.168.43.25'
-port = 8080
+portDefault = 8080
 
 class server():
     def __init__(self):
         self.sss = socket(AF_INET, SOCK_DGRAM)
-        self.setAddr()
+        self.setAddr(opt.ip, opt.port)
         self.sss.bind(self.addr)
         print("---------------------if close needed, Ctrl+C please---------------------")
 
@@ -22,18 +24,16 @@ class server():
         '''
         self.sss.close()
 
-    def setAddr(self, ip = '0.0.0.0'):
-        if ip == '0.0.0.0':
-            try:
-                addr = (sys.argv[1], port)
-                print("Input ip {} suceess.".format(addr[0]))
-                assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", addr[0]))
-            except:
-                addr = (ipDefault, port)
-                print("ipDefault {}.".format(addr[0]))
-        else:
+    def setAddr(self, ipLocal = None, portLocal = None):
+        ip = ipLocal if not ipLocal == None else ipDefault
+        port = int(portLocal) if not portLocal == None else portDefault
+        try:
             addr = (ip, port)
-            print("Set ip {} suceess.".format(addr[0]))
+            assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", addr[0]))
+            print("ip {} port {} set suceess.".format(addr[0], addr[1]))
+        except:
+            addr = (ipDefault, portDefault)
+            print("ip {} port {} set suceess.".format(addr[0], addr[1]))
         assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", addr[0]))
         self.addr = addr
 
@@ -54,6 +54,13 @@ class server():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ip", type=str, help="server ip", required=False)
+    parser.add_argument("--port", type=str, help="server ip", required=False)
+    opt = parser.parse_args()
+    print("--ip = ", opt.ip)
+    print("--port = ", opt.port)
+
     obj = server()
     obj.Recv()
 
