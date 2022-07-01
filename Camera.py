@@ -3,7 +3,11 @@ import pyrealsense2 as rs
 import cv2
 import random as rd
 import copy
+import matplotlib.pyplot as plt
+import matplotlib
+import traceback
 
+matplotlib.use('TkAgg')
 distortion1 = 0.1006
 distortion2 = -0.0998
 
@@ -68,6 +72,11 @@ class myCamera():
 
 class blockSize(myCamera):
 
+    def tempreturn(self):
+        # self.temp = np.append(self.temp, np.array([[[Z,max(Len, Wid)]]]))
+        # np.savetxt("./test.txt", self.temp)
+        return self.temp[-1]
+
     def specify(self, u, v, Z):
         '''
         :param u: pixel
@@ -127,14 +136,11 @@ class blockSize(myCamera):
         PerError = 0 if not flagFix else self.Fix(Z)
         return max(Len, Wid) / (1 + PerError)
 
-    def myreturn(self):
-        # self.temp = np.append(self.temp, np.array([[[Z,max(Len, Wid)]]]))
-        # np.savetxt("./test.txt", self.temp)
-        return self.temp[-1]
+
 
     def blockSize3(self, Point1, Point2, Ztemp):
         '''
-        left\down\right\left four point to calculate, and father's specify
+        left\down\right\left four point to calculate, and father's specify(distorted)
         :param Point1: pixel
         :param Point2: pixel
         :param Ztemp: millimeter
@@ -156,6 +162,22 @@ class blockSize(myCamera):
     def Fix(self, Z):
         return -0.03168283 * Z + 0.00886965
 
+    def tempShow(self, temp=''):
+        numStamp = 10
+        sizeStamp = 0.355
+        if temp == '': temp = self.temp
+        tempList = np.asarray(temp)
+        numStamp, _ = np.shape(tempList)
+        numStamp = min(numStamp, 100)
+        try:
+            plt.plot(tempList[-numStamp:-1, 0], np.ones((numStamp-1)) * sizeStamp)
+            plt.plot(tempList[-numStamp:-1, 0], tempList[-numStamp:-1, 1])
+            plt.ylabel('Size')
+            plt.xlabel('Time stamp')
+            plt.show()
+        except:
+            traceback.print_exc()
+            print("Num < numStamp.")
 
 
 if __name__ == "__main__":
