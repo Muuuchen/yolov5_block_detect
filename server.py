@@ -1,69 +1,70 @@
-import traceback
-
-import numpy as np
-import cv2
-from socket import *
 import sys
 import re
-import argparse
-import os
+from socket import *
+import threading
+import cv2
 
-ipDefault = '192.168.43.25'
-portDefault = 8080
+port = 8080
+inRange = 1
+ipDefault = '192.168.10.211'
 
-class server():
+# to PC
+class client():
     def __init__(self):
         self.sss = socket(AF_INET, SOCK_DGRAM)
-        self.setAddr(opt.ip, opt.port)
-        self.sss.bind(self.addr)
-        print("---------------------if close needed, Ctrl+C please---------------------")
+        self.setAddr()
 
     def __del__(self):
-        '''
-        !-- only work at the period of close normally or Ctrl+C
-        and then port would be released
-        :return:
-        '''
         self.sss.close()
 
-    def setAddr(self, ipLocal = None, portLocal = None):
-        ip = ipLocal if not ipLocal == None else ipDefault
-        port = int(portLocal) if not portLocal == None and not portLocal == 'None' else portDefault
-        try:
-            addr = (ip, port)
-            assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", addr[0]))
-            print("ip {} port {} set suceess.".format(addr[0], addr[1]))
-        except:
-            traceback.print_exc()
-            addr = (ipDefault, portDefault)
-            print("ip {} port {} set suceess.".format(addr[0], addr[1]))
-        assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", addr[0]))
-        self.addr = addr
+    def send_func(self):
+        self.sss.sendto(self.send_data, self.addr)
+        # print(f'已发送{len(send_data)}Bytes的数据')
 
-    def Recv(self):
-        while True:
-            data, _ = self.sss.recvfrom(921600)
-            receive_data = np.frombuffer(data, dtype='uint8')
-            r_img = cv2.imdecode(receive_data, 1)
-            r_img = r_img.reshape(480, 640, 3)
+    def sendImg(self, img):
+        _, self.send_data = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 50])
+        th = threading.Thread(target=self.send_func)
+        th.setDaemon(True)
+        th.start()
 
-            # cv2.putText(r_img, "server", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            cv2.imshow('server_frame', r_img)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+    def setAddr(self, ip='0.0.0.0'):
+        '''
+        Addr = (ip, port)
+        :param ip:
+        :return:
+        '''
+        if ip == '0.0.0.0':
+            try:
+                self.addr = (sys.argv[inRange], port)
+                print("Input ip {} suceess.".format(self.addr[0]))
+            except:
+                self.addr = (ipDefault, port)
+                print("ipDefault {}.".format(self.addr[0]))
+        else:
+            self.addr = (ip, port)
+            print("Set ip {} suceess.".format(self.addr[0]))
+        assert bool(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.addr[0]))
 
-        cv2.destroyAllWindows()
+    def validate_ip_address(ip):
+        parts = str(ip).split(".")
 
+        if len(parts) != 4:
+            print("IP address {} is not valid".format(ip))
+            return False
+
+        for part in parts:
+            if not isinstance(int(part), int):
+                print("IP address {} is not valid".format(ip))
+                return False
+
+            if int(part) < 0 or int(part) > 255:
+                print("IP address {} is not valid".format(ip))
+                return False
+
+        print("IP address {} is valid".format(ip))
+        return True
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ip", type=str, help="server ip", required=False)
-    parser.add_argument("--port", type=str, help="server ip", required=False)
-    opt = parser.parse_args()
-    print("--ip = ", opt.ip)
-    print("--port = ", opt.port)
-
-    obj = server()
-    obj.Recv()
-
+    obj = client()
+    print(obj.addr)
