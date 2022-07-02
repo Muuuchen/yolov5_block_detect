@@ -7,7 +7,7 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
-
+from client import client
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
@@ -25,36 +25,17 @@ import myHoughEllipse
 from AngleCalculate import AngleCal
 from ClosestBlock1 import Closest_Block
 from F_B_cal import Front_and_Back_Cal
-import threading
-from socket import *
 import sys
 import traceback
 import Camera
-'''
-此代码中加入了client模块，用于向上位机传输实时检测结果的图像；接收端server.py的代码也在文件夹中
-client模块的具体格式：
-#client模块
-code
-#client模块
-'''
+
+client_obj = client()
 blockSize_obj = Camera.blockSize()
+
 tempList = []
 imshowFlag = True
 
-def specify(depth_frame, xx, yy):
-    deep = depth_frame.get_distance(xx, yy)
-    depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
-    camera_coordinate = rs.rs2_deproject_pixel_to_point(depth_intrin, [xx, yy],
-                                                        deep)
-    camera_coordinate = np.array(camera_coordinate)
-    dis = np.linalg.norm(camera_coordinate)
-    return dis,camera_coordinate
 
-#client模块
-def send_img(): #向主机发送数据
-    sss.sendto(send_data, addr)
-    # print(f'已发送{len(send_data)}Bytes的数据')
-    # sss.close()
 '''
 def fabufa0():
     global faLock, faFlag, ser
@@ -83,7 +64,7 @@ def fabufa():
     return True
 
 def detect(save_img=False):
-    global addr, faFlag, send_data
+    global faFlag, send_data
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -137,12 +118,6 @@ def detect(save_img=False):
     camera_coordinate = [0, 0, 0]
     #ex = kalf.kalman()
 
-    #client模块
-    try:
-        addr = (str(sys.argv[1]), 8080)
-    except:
-        addr = ('192.168.10.213', 8080)          # 127.0.0.1表示本机的IP，相当于我和“自己”的关系
-    #client模块
 
     for path, img, im0s, vid_cap, imdal in dataset:
         # input img from datasets.py
@@ -299,20 +274,13 @@ def detect(save_img=False):
 
 
         if view_img:
-
             if imshowFlag: cv2.imshow(str(p), im1)
-
-            # client模块
-            img = im1
-            th = threading.Thread(target=send_img)
-            th.setDaemon(True)
-            _, send_data = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 50])
-            # print(send_data.size)
-            th.start()
-            # cv2.putText(img, "client", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            # cv2.imshow('client_frame', img)
-            # cv2.waitKey(1)  # 1 millisecond
-            # client模块
+            client_obj.sendImg(im1)
+            if imshowFlag and False:
+                img = im1
+                cv2.putText(img, "client", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+                cv2.imshow('client_frame', img)
+                cv2.waitKey(1)  # 1 millisecond
 
 
     if save_txt or save_img:
@@ -325,8 +293,7 @@ if __name__ == '__main__':
     '''send message'''
     # os.system("nmcli device wifi connect yanzhixue password 12344321 ifname wlan0")
     # print("Wifi Connected!")
-    # to PC
-    sss = socket(AF_INET, SOCK_DGRAM)
+
 
     # to STM32
     port_list = list(serial.tools.list_ports.comports())
@@ -334,7 +301,6 @@ if __name__ == '__main__':
         print("无可用串口!!!")
     else:
         for i in range(len(port_list)): print(port_list)
-        # ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=0) # None
         ser = serial.Serial("/dev/ttyUSB0", 9600, timeout=0)
         if (False == ser.is_open):
             ser = -1
@@ -364,6 +330,7 @@ if __name__ == '__main__':
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
+    # parser.add_argument(sys.argv[1])
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=('pycocotools', 'thop'))
