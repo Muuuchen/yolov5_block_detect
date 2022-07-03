@@ -64,7 +64,7 @@ def fabufa():
     return True
 
 def detect(save_img=False):
-    global faFlag, send_data
+    global faFlag
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -177,23 +177,20 @@ def detect(save_img=False):
                         t0 = time.time()
                         label = f'{names[int(cls)]} {conf:.2f}'
                         colorflag = int(cls)
-                        #画框函数
+
                         plot_one_box(xyxy, im1, label=label, color=colors[int(cls)], line_thickness=3)
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
-                        getpoint = torch.tensor(xyxy).view(1, 4)
-                        getpoint = getpoint.numpy()
-                        #修正选择一个平均距离最近框\
-                        #sum1 mid point sort, cX,cY M zhi xin
+                        getpoint = torch.tensor(xyxy).view(1, 4).numpy()
+
                         sum1,flag_temp, cX,cY,isside_temp = Closest_Block(vid_cap[i], im0, getpoint,colorflag)
                         diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i][int(cY)][int(cX)])
-
                         '''
                         diameter = blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4],
                                                            vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)]\
                                                                [int((getpoint[0, 0]+getpoint[0, 2])/2)])
                         '''
-                        if sum1 < depsum:
-                        # if maxSize <= diameter:
+                        # if sum1 < depsum:
+                        if maxSize <= diameter:
                             listElement = blockSize_obj.tempreturn()
                             depsum = sum1
                             mx = int(cX)
@@ -202,15 +199,15 @@ def detect(save_img=False):
                             flag = flag_temp
                             colorflag_dest = colorflag
                             isside = isside_temp
-                print("------")
+
 
                 #----------Modification Start---------
+                print("------")
                 if depsum == float("inf") or flag == 0: continue
                 if float(listElement[1]) > 1e-4: tempList.append(listElement)
                 # blockSize_obj.tempShow(tempList)
                 print(colorflag, maxSize)
-
-                np.savetxt("./datatest/test_down.txt", np.asarray(tempList), fmt='%.6f')
+                # np.savetxt("./datatest/test_down.txt", np.asarray(tempList), fmt='%.6f')
                 horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint,colorflag_dest)
@@ -240,11 +237,11 @@ def detect(save_img=False):
                     if horres > 0: direction = "right"
                     else: direction = "left"
                 #
-                # print("距中心的距离为", l0)
-                # print("距中心的水平距离为", l1)
-                # print("以相机为基准的方位坐标为", pix0)
-                # print("水平偏角为:", horres, direction)
-                # print("俯仰偏角为:", velres, stand_str)
+                print("zitai", zitai)
+                print("距中心的水平距离为", l1)
+                print("以相机为基准的方位坐标为", pix0)
+                print("水平偏角为:", horres, direction)
+                print("俯仰偏角为:", velres, stand_str)
                 sys.stdout.flush()
 
                 cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
@@ -274,14 +271,9 @@ def detect(save_img=False):
 
 
         if view_img:
+            # cv2.putText(im1, "client", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             if imshowFlag: cv2.imshow(str(p), im1)
             client_obj.sendImg(im1)
-            if imshowFlag and False:
-                img = im1
-                cv2.putText(img, "client", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-                cv2.imshow('client_frame', img)
-                cv2.waitKey(1)  # 1 millisecond
-
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
@@ -301,7 +293,7 @@ if __name__ == '__main__':
         print("无可用串口!!!")
     else:
         for i in range(len(port_list)): print(port_list)
-        ser = serial.Serial("/dev/ttyUSB0", 9600, timeout=0)
+        ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=0)
         if (False == ser.is_open):
             ser = -1
             print("ttyUSB open failed.")
