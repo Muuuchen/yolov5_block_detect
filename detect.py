@@ -31,10 +31,9 @@ import Camera
 
 client_obj = client()
 blockSize_obj = Camera.blockSize()
-
 tempList = []
-imshowFlag = True
 
+imshowFlag = True
 
 '''
 def fabufa0():
@@ -140,10 +139,10 @@ def detect(save_img=False):
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
 
-        faFlag2 = False
+        faNFlag = False
         if len(port_list) != 0 and False != ser.is_open:
             faFlag = fabufa()
-            faFlag2 = faFlag
+            faNFlag = faFlag
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
@@ -189,8 +188,8 @@ def detect(save_img=False):
                                                            vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)]\
                                                                [int((getpoint[0, 0]+getpoint[0, 2])/2)])
                         '''
-                        # if sum1 < depsum:
-                        if maxSize <= diameter:
+                        if sum1 < depsum:
+                        # if maxSize <= diameter:
                             listElement = blockSize_obj.tempreturn()
                             depsum = sum1
                             mx = int(cX)
@@ -245,9 +244,7 @@ def detect(save_img=False):
                 sys.stdout.flush()
 
                 cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
-                # cv2.circle(im0, (int(pix0[0]), int(pix0[1])), 10, (0,101,255), -1)
-                if not math.isnan(horres): txt = int(horres)
-                else: txt = horres
+                txt = int(horres) if not math.isnan(horres) else horres
                 cv2.putText(im1,
                             '{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt),
                             (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (252, 218, 252), 2)
@@ -258,13 +255,13 @@ def detect(save_img=False):
                     # unit is millimeter
                     poststr = str(l1 * 1000) + "#" + str(horres * 1000) + "#" + str(zitai)
                     for i in range(len(pix0)): poststr += "#" + str(pix0[i] * 1000)
-                    faFlag2 = False
+                    faNFlag = False
                     print("发送成功")
                     _ = ser.write(poststr.encode())
                     # faLock.acquire()
                     # faFlag = False
                     # faLock.release()
-        if faFlag2:
+        if faNFlag:
             poststr = str("N")
             print("发送N")
             _ = ser.write(poststr.encode())
@@ -322,7 +319,6 @@ if __name__ == '__main__':
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
-    # parser.add_argument(sys.argv[1])
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=('pycocotools', 'thop'))
