@@ -11,15 +11,26 @@ def cnt_area(cnt):
     return area
 
 def Closest_Block(imgdep, img, getpoint,colorflag):
+    '''
+
+    :param imgdep:
+    :param img:
+    :param getpoint: center in white
+    :param colorflag:
+    :return: sum1, flag_temp, cX, cY, isside_temp
+    '''
     l = adaptx(int(getpoint[0][0]))
     u = adapty(int(getpoint[0][1]))
     r = adaptx(int(getpoint[0][2]))
     d = adapty(int(getpoint[0][3]))
     if ((r-l)*(d-u)<=30*30):
         return float("inf"), 0, (l+r)/2,(u+d)/2, 0
-    #print(l,r,u,d)
-    # blue 1   Red 0
-    RB = np.array([[[129, 57, 84], [179, 255, 255]], [[48, 43, 0], [144, 255, 255]]], dtype=np.uint8)
+
+    # colorflag: Red 0 blue 1
+    # RB = np.array([[[129, 57, 84], [179, 255, 255]], [[48, 43, 0], [144, 255, 255]]], dtype=np.uint8)
+    R1 = np.array([[0, 68, 59], [20, 255, 255]], dtype=np.uint8)
+    R2 = np.array([[150, 68, 59], [179, 255, 255]], dtype=np.uint8)
+    B = np.array([[48, 43, 0], [144, 255, 255]], dtype=np.uint8)
 
     # get the rectangle of block
     Rect = np.array([[l, u], [l, d], [r, d], [r, u]])
@@ -42,12 +53,10 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
     Gaus = cv2.GaussianBlur(img, (7, 7), 0)
     imghsv = cv2.cvtColor(Gaus, cv2.COLOR_BGR2HSV)
 
-    # blue hsv h(78,116) s(113,255) v(38,255)
-    low_hsv_b = RB[colorflag][0]
-    high_hsv_b = RB[colorflag][1]
-    mask = cv2.inRange(imghsv, low_hsv_b, high_hsv_b)
-    #cv2.imshow("Blue Mask", mask)
-    #cv2.imshow("depmask",imdep1)
+    mask = cv2.bitwise_or(cv2.inRange(imghsv, R1[0], R1[1]), cv2.inRange(imghsv, R2[0], R2[1])) \
+        if not colorflag else cv2.inRange(imghsv, B[0], B[1])
+    cv2.imshow("Color Mask", mask)
+    cv2.imshow("depmask",imdep1)
     mask = cv2.bitwise_xor(mask,imdep1)
 
     erosion = cv2.erode(mask, (3, 3), iterations=1)
