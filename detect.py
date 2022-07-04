@@ -1,39 +1,30 @@
-import matplotlib.pyplot as plt
 import argparse
-import time
 from pathlib import Path
-import pyrealsense2 as rs
-import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
-from client import client
+from classes.client import client
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
-import serial
 import serial.tools.list_ports
-import time
-import math
-import cv2
+import time, math, random
+import cv2, traceback
 import numpy as np
-import random
-import myHoughEllipse
 from AngleCalculate import AngleCal
 from ClosestBlock1 import Closest_Block
 from F_B_cal import Front_and_Back_Cal
-import sys
-import traceback
-import Camera
+import os, sys
+from classes import Camera
+from init import imshowFlag
 
 client_obj = client()
 blockSize_obj = Camera.blockSize()
 tempList = []
-
-imshowFlag = True
+sendStr = 'No Serial'
 
 '''
 def fabufa0():
@@ -63,7 +54,7 @@ def fabufa():
     return True
 
 def detect(save_img=False):
-    global faFlag
+    global faFlag, sendStr
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -210,24 +201,25 @@ def detect(save_img=False):
                 horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint,colorflag_dest)
-                if isside == 1:
-                    print("side")
-                    #continue
-                if velres <= -40:
-                    print("躺")
-                else:
-                    if horres >-45 and horres < 45:
-                        if F_B_pos == 1:
-                            print("正面立")
-                        else:
-                            if F_B_pos == 0:
-                                print("反面立")
-                            else:
-                                print("不能判断立")
-                    else:
-                        print("侧")
 
-                zitai = 1 #1为躺 0为立
+                if isside == 1: print("side stand")
+                elif isside == -1: print("side lie down")
+                elif F_B_pos == 1: print("正面立")
+                elif F_B_pos == 0: print("反面立")
+                else: print("不能判断立")
+
+                '''
+                if isside == 1: print("side stand")
+                elif isside == -1: print("side lie down")
+                elif velres <= -40: print("躺")
+                elif horres >-45 and horres < 45:
+                    if F_B_pos == 1: print("正面立")
+                    elif F_B_pos == 0: print("反面立")
+                    else: print("不能判断立")
+                else: print("侧")
+                '''
+
+                zitai = 1 # 1为躺, 0为立
                 stand_str = "位姿为躺"
                 direction = "None"
                 if velres > -40:
@@ -235,7 +227,7 @@ def detect(save_img=False):
                     stand_str = "位姿为立"
                     if horres > 0: direction = "right"
                     else: direction = "left"
-                #
+
                 print("zitai", zitai)
                 print("距中心的水平距离为", l1)
                 print("以相机为基准的方位坐标为", pix0)
@@ -246,29 +238,30 @@ def detect(save_img=False):
                 cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
                 txt = int(horres) if not math.isnan(horres) else horres
                 cv2.putText(im1,
-                            '{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt),
-                            (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (252, 218, 252), 2)
+                            'Cur: {} [H:{}Degree]'.format(['stand', 'lie down'][zitai], txt),
+                            (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, [(252, 218, 252), (255, 0, 0)][1], 2)
+
                 # Serial Block
                 if len(port_list) != 0 and False != ser.is_open and faFlag \
                         and not math.isnan(l1) and not math.isnan(horres):
                     # and l0 < 3 and not math.isnan(l1) and not math.isnan(horres):
-                    # unit is millimeter
-                    poststr = str(l1 * 1000) + "#" + str(horres * 1000) + "#" + str(zitai)
+                    poststr = str(l1 * 1000) + "#" + str(horres * 1000) + "#" + str(zitai) # unit is millimeter
                     for i in range(len(pix0)): poststr += "#" + str(pix0[i] * 1000)
                     faNFlag = False
                     print("发送成功")
                     _ = ser.write(poststr.encode())
-                    # faLock.acquire()
-                    # faFlag = False
-                    # faLock.release()
+                    sendStr = 'Send:{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt)
+                cv2.putText(im1, sendStr,
+                            (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+                            [(252, 218, 252), (255, 0, 0)][1], 2)
+
         if faNFlag:
-            poststr = str("N")
+            sendStr = str("Send:N")
             print("发送N")
-            _ = ser.write(poststr.encode())
+            _ = ser.write(str("N").encode())
 
 
         if view_img:
-            # cv2.putText(im1, "client", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             if imshowFlag: cv2.imshow(str(p), im1)
             client_obj.sendImg(im1)
 
@@ -279,10 +272,8 @@ def detect(save_img=False):
 
 
 if __name__ == '__main__':
-    '''send message'''
-    # os.system("nmcli device wifi connect yanzhixue password 12344321 ifname wlan0")
-    # print("Wifi Connected!")
-
+    print("Wifi connecting...")
+    # os.system("nmcli device wifi connect yanzhixue2 password 12344321 ifname wlan0")
 
     # to STM32
     port_list = list(serial.tools.list_ports.comports())
@@ -320,7 +311,6 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     opt = parser.parse_args()
-    print(opt)
     check_requirements(exclude=('pycocotools', 'thop'))
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
