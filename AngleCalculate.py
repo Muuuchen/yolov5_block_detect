@@ -21,6 +21,8 @@ def AngleCal(depth_frame,mx,my):
         if mx - delta > 0 and mx + delta < 640:
             l1, pix1 = specify(depth_frame, mx - delta, my)
             l2, pix2 = specify(depth_frame, mx + delta, my)
+            if(l1 <= 0.0001 or l2 <= 0.000):
+                break
             x1 = np.linalg.norm(pix0 - pix1)
             x2 = np.linalg.norm(pix0 - pix2)
             # get 3D distance
@@ -46,6 +48,8 @@ def AngleCal(depth_frame,mx,my):
         if my - delta > 0 and my + delta < 480:
             l1, pix1 = specify(depth_frame, mx, my - delta)
             l2, pix2 = specify(depth_frame, mx, my + delta)
+            if(l1 <= 0.0001 or l2 <= 0.000):
+                break
             x1 = np.linalg.norm(pix0 - pix1)
             x2 = np.linalg.norm(pix0 - pix2)
             if 2 * x1 * l0==0 or (x1 ** 2 + l0 ** 2 - l1 ** 2) / (2 * x1 * l0) > 1 or (
