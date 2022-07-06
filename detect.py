@@ -202,8 +202,10 @@ def detect(save_img=False):
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint,colorflag_dest)
 
-                if isside == 1: print("side stand")
-                elif isside == -1: print("side lie down")
+                if isside == 1:
+                    print("side stand")
+                elif isside == -1:
+                    print("side lie down")
                 elif F_B_pos == 1: print("正面立")
                 elif F_B_pos == 0: print("反面立")
                 else: print("不能判断立")
@@ -222,11 +224,12 @@ def detect(save_img=False):
                 zitai = 1 # 1为躺, 0为立
                 stand_str = "位姿为躺"
                 direction = "None"
-                if velres > -40:
-                    zitai =0
+                if velres > -40 or isside == 1:
+                    zitai = 0
                     stand_str = "位姿为立"
                     if horres > 0: direction = "right"
                     else: direction = "left"
+                    if isside == 1: horres = 90
 
                 print("zitai", zitai)
                 print("距中心的水平距离为", l1)
@@ -251,16 +254,16 @@ def detect(save_img=False):
                     print("发送成功")
                     _ = ser.write(poststr.encode())
                     sendStr = 'Send:{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt)
-                cv2.putText(im1, sendStr,
-                            (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                            [(252, 218, 252), (255, 0, 0)][1], 2)
+
 
         if faNFlag:
             sendStr = str("Send:N")
             print("发送N")
             _ = ser.write(str("N").encode())
 
-
+        cv2.putText(im1, sendStr,
+                    (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+                    [(252, 218, 252), (255, 0, 0)][1], 2)
         if view_img:
             if imshowFlag: cv2.imshow(str(p), im1)
             client_obj.sendImg(im1)
