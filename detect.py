@@ -50,8 +50,12 @@ def fabufa():
     # data = ser.read(1024)
     data = ser.read(1024)
     print(data.decode())
-    if len(data.decode()) == 0: return False
-    return True
+    try:
+        if len(data.decode()) == 0: return False
+        return True
+    except:
+        traceback.print_exc()
+        return False
 
 def detect(save_img=False):
     global faFlag, sendStr
@@ -173,14 +177,9 @@ def detect(save_img=False):
                         getpoint = torch.tensor(xyxy).view(1, 4).numpy()
 
                         sum1,flag_temp, cX,cY,isside_temp = Closest_Block(vid_cap[i], im0, getpoint,colorflag)
-                        diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i][int(cY)][int(cX)])
-                        '''
-                        diameter = blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4],
-                                                           vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)]\
-                                                               [int((getpoint[0, 0]+getpoint[0, 2])/2)])
-                        '''
-                        if sum1 < depsum:
-                        # if maxSize <= diameter:
+                        diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i][int(cY)][int(cX)]) # diameter = blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4], vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)][int((getpoint[0, 0]+getpoint[0, 2])/2)])
+
+                        if sum1 < depsum: # if maxSize <= diameter:
                             listElement = blockSize_obj.tempreturn()
                             depsum = sum1
                             mx = int(cX)
@@ -209,17 +208,6 @@ def detect(save_img=False):
                 elif F_B_pos == 1: print("正面立")
                 elif F_B_pos == 0: print("反面立")
                 else: print("不能判断立")
-
-                '''
-                if isside == 1: print("side stand")
-                elif isside == -1: print("side lie down")
-                elif velres <= -40: print("躺")
-                elif horres >-45 and horres < 45:
-                    if F_B_pos == 1: print("正面立")
-                    elif F_B_pos == 0: print("反面立")
-                    else: print("不能判断立")
-                else: print("侧")
-                '''
 
                 zitai = 1 # 1为躺, 0为立
                 stand_str = "位姿为躺"
@@ -289,9 +277,6 @@ if __name__ == '__main__':
             ser = -1
             print("ttyUSB open failed.")
         print("串口参数：", ser)
-        # faFlag = False
-        # faLock = threading.RLock()
-        # t = threading.Thread(target=fabufa, args=()).start()
 
     cv2.VideoCapture(1)
 
