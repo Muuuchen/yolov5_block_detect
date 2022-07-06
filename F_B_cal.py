@@ -62,7 +62,7 @@ def Front_and_Back_Cal(imcol,imdep,mx,my,getpoint,colorflag):
 
     nowdepth,c = specify(imdep, mx, my)
 
-    sum = 0
+    sum = 1e-10
     sumb = 0
     for i in range(0,my-y1):
         dis, c =specify(imdep,mx,my-i)
