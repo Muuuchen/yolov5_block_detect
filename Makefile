@@ -16,7 +16,7 @@ S:classes/server.py
 	@echo "Running server..."
 	python3 ${CLASSDIR}/classes/server.py --ip=${ip} --port=${port}
 
-C:detect.py
+C:classes/detect.py
 	@echo "Running detect..."
 	python3 ${CLASSDIR}/detect.py
 
