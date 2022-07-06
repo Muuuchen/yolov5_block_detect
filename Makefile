@@ -12,11 +12,11 @@ endif
 
 default: S
 
-S:classes/server.py
+S:${CLASSDIR}/classes/server.py
 	@echo "Running server..."
 	python3 ${CLASSDIR}/classes/server.py --ip=${ip} --port=${port}
 
-C:classes/detect.py
+C:${CLASSDIR}/detect.py
 	@echo "Running detect..."
 	python3 ${CLASSDIR}/detect.py
 
