@@ -69,7 +69,7 @@ def Front_and_Back_Cal(imcol,imdep,mx,my,getpoint,colorflag):
         if abs(nowdepth - dis) > 0.50: break
         sum = sum + 1
         sumb = sumb + incolor(imhsv[my-i][mx], colorflag)
-    return 1 if sumb / sum > 0.02 else 0
+    return 1 if sumb / sum > 0.05 else 0
 
 '''
     sum = 0
