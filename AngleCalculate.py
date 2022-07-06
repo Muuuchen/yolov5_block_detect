@@ -33,15 +33,18 @@ def AngleCal(depth_frame,mx,my):
                     x2 ** 2 + l0 ** 2 - l2 ** 2) / (2 * x2 * l0) < -1:
                 continue
             a = (math.acos((x1 ** 2 + l0 ** 2 - l1 ** 2) / (2 * x1 * l0)) / 3.1415926) * 180
-            b = (math.acos((x2 ** 2 + l0 ** 2 - l2 ** 2) / (2 * x2 * l0)) / 3.1415926) * 180
-            theta.append((b - a) / 2)
+            #b = (math.acos((x2 ** 2 + l0 ** 2 - l2 ** 2) / (2 * x2 * l0)) / 3.1415926) * 180
+            beta = (math.atan(pix0[2]/pix0[0])/3.1415926)*180
+            theta.append(abs(beta) - abs(a))
 
     theta = np.array(theta[1:])
-
+    mean = np.mean(theta, axis=0)
+    std = np.std(theta, axis=0)
+    theta_res = [x for x in theta if(x >mean-3*std and x < mean+3*std)]
     if horres == 0 or horres:
-        horres = np.mean(theta)
+        horres = np.mean(theta_res)
     else:
-        horres = 0.5 * np.mean(theta) + 0.5 * horres
+        horres = 0.5 * np.mean(theta_res) + 0.5 * horres
 
     theta = []
     for delta in range(20):
@@ -58,11 +61,15 @@ def AngleCal(depth_frame,mx,my):
                     x2 ** 2 + l0 ** 2 - l2 ** 2) / (2 * x2 * l0) < -1:
                 continue
             a = (math.acos((x1 ** 2 + l0 ** 2 - l1 ** 2) / (2 * x1 * l0)) / 3.1415926) * 180
-            b = (math.acos((x2 ** 2 + l0 ** 2 - l2 ** 2) / (2 * x2 * l0)) / 3.1415926) * 180
-            theta.append((b - a) / 2)
+            #b = (math.acos((x2 ** 2 + l0 ** 2 - l2 ** 2) / (2 * x2 * l0)) / 3.1415926) * 180
+            beta = (math.atan(pix0[2]/pix0[0])/3.1415926)*180
+            theta.append(abs(beta) - abs(a))
     theta = np.array(theta[1:])
+    mean = np.mean(theta, axis=0)
+    std = np.std(theta, axis=0)
+    theta_res = [x for x in theta if(x >mean-3*std and x < mean+3*std)]
     if velres == 0 or velres:
-         velres = np.mean(theta)
+         velres = np.mean(theta_res)
     else:
-        velres = 0.5 * np.mean(theta) + 0.5 * velres
+        velres = 0.5 * np.mean(theta_res) + 0.5 * velres
     return horres,velres,l0,pix0
