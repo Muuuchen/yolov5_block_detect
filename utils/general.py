@@ -3,14 +3,17 @@
 import glob
 import logging
 import math
-import os
+import os, sys
 import platform
 import random
 import re
 import subprocess
 import time
 from pathlib import Path
-
+dir_path = os.path.dirname(os.path.realpath(__file__))
+parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
+sys.path.insert(0, parent_dir_path)
+from init import imshowFlag
 import cv2
 import numpy as np
 import pandas as pd
@@ -132,7 +135,7 @@ def check_imshow():
     # Check if environment supports image displays
     try:
         assert not isdocker(), 'cv2.imshow() is disabled in Docker environments'
-        cv2.imshow('test', np.zeros((1, 1, 3)))
+        if imshowFlag: cv2.imshow('test', np.zeros((1, 1, 3)))
         cv2.waitKey(1)
         cv2.destroyAllWindows()
         cv2.waitKey(1)
