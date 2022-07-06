@@ -2,11 +2,14 @@
 
 import glob
 import math
-import os
+import os, sys
 import random
 from copy import copy
 from pathlib import Path
-
+dir_path = os.path.dirname(os.path.realpath(__file__))
+parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
+sys.path.insert(0, parent_dir_path)
+from init import imshowFlag
 import cv2
 import matplotlib
 import matplotlib.pyplot as plt
@@ -301,7 +304,7 @@ def plot_labels(labels, names=(), save_dir=Path(''), loggers=None):
     img = Image.fromarray(np.ones((2000, 2000, 3), dtype=np.uint8) * 255)
     for cls, *box in labels[:1000]:
         ImageDraw.Draw(img).rectangle(box, width=1, outline=colors[int(cls) % 10])  # plot
-    ax[1].imshow(img)
+    if imshowFlag: ax[1].imshow(img)
     ax[1].axis('off')
 
     for a in [0, 1, 2, 3]:
