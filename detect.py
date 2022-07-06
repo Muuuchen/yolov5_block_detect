@@ -230,14 +230,14 @@ def detect(save_img=False):
                     if horres > 0: direction = "right"
                     else: direction = "left"
                     if isside == 1: horres = 90
-
+                '''
                 print("zitai", zitai)
                 print("距中心的水平距离为", l1)
                 print("以相机为基准的方位坐标为", pix0)
                 print("水平偏角为:", horres, direction)
                 print("俯仰偏角为:", velres, stand_str)
                 sys.stdout.flush()
-
+                '''
                 cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
                 txt = int(horres) if not math.isnan(horres) else horres
                 cv2.putText(im1,
@@ -262,7 +262,7 @@ def detect(save_img=False):
             _ = ser.write(str("N").encode())
 
         cv2.putText(im1, sendStr,
-                    (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+                    (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
                     [(252, 218, 252), (255, 0, 0)][1], 2)
         if view_img:
             if imshowFlag: cv2.imshow(str(p), im1)
