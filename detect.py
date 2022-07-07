@@ -11,19 +11,17 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 import serial.tools.list_ports
-import time, math, random
-import cv2, traceback
+import time, math, random, cv2, traceback, os, sys
 import numpy as np
-from AngleCalculate import AngleCal
+from AngleCalculate import AngleCal, calculate_normal_vector
 from ClosestBlock1 import Closest_Block
 from F_B_cal import Front_and_Back_Cal
-import os, sys
 from classes import Camera
 from init import imshowFlag
+from blockManage import sizeNearest
 
 client_obj = client()
 blockSize_obj = Camera.blockSize()
-tempList = []
 sendStr = 'No Serial'
 
 '''
@@ -177,10 +175,10 @@ def detect(save_img=False):
                         getpoint = torch.tensor(xyxy).view(1, 4).numpy()
 
                         sum1,flag_temp, cX,cY,isside_temp = Closest_Block(vid_cap[i], im0, getpoint,colorflag)
-                        diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i][int(cY)][int(cX)]) # diameter = blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4], vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)][int((getpoint[0, 0]+getpoint[0, 2])/2)])
+                        diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i], np.array([cY, cX]), isside_temp) if True else blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4], vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)][int((getpoint[0, 0]+getpoint[0, 2])/2)], isside_temp)
 
                         if sum1 < depsum: # if maxSize <= diameter:
-                            listElement = blockSize_obj.tempreturn()
+                            normElement, fixElement = blockSize_obj.deepreturn()
                             depsum = sum1
                             mx = int(cX)
                             my = int(cY)
@@ -189,57 +187,38 @@ def detect(save_img=False):
                             colorflag_dest = colorflag
                             isside = isside_temp
 
-
                 #----------Modification Start---------
                 print("------")
                 if depsum == float("inf") or flag == 0: continue
-                if float(listElement[1]) > 1e-4: tempList.append(listElement)
-                # blockSize_obj.tempShow(tempList)
-                print(colorflag, maxSize)
-                # np.savetxt("./datatest/test_down.txt", np.asarray(tempList), fmt='%.6f')
-                horres, velres, l0, pix0 = AngleCal(imdal[i], mx, my) #计算角度
+                if float(normElement[1]) > 1e-4 and float(fixElement[1]) > 1e-4 and False: blockSize_obj.save(normElement, fixElement)
+                print(sizeNearest(maxSize), maxSize)
+
+                cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
+                horres, velres, l0, pix0 = calculate_normal_vector(vid_cap[i], mx, my) if False else AngleCal(imdal[i], mx, my)
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint,colorflag_dest)
 
-                if isside == 1:
-                    print("side stand")
-                elif isside == -1:
-                    print("side lie down")
+                if isside == 1: print("side stand")
+                elif isside == -1 or velres < -40: print("side lie down")
                 elif F_B_pos == 1: print("正面立")
                 elif F_B_pos == 0: print("反面立")
                 else: print("不能判断立")
 
-                zitai = 1 # 1为躺, 0为立
-                stand_str = "位姿为躺"
-                direction = "None"
-                if velres > -40 or isside == 1:
-                    zitai = 0
-                    stand_str = "位姿为立"
-                    if horres > 0: direction = "right"
-                    else: direction = "left"
-                    if isside == 1: horres = 90
-                '''
-                print("zitai", zitai)
-                print("距中心的水平距离为", l1)
-                print("以相机为基准的方位坐标为", pix0)
-                print("水平偏角为:", horres, direction)
-                print("俯仰偏角为:", velres, stand_str)
-                sys.stdout.flush()
-                '''
+                zitai = 0 if abs(velres) > 40 or isside == 1 else 1 # 1为躺, 0为立
+                stand_str = "位姿为立" if abs(velres) > 40 or isside == 1 else "位姿为躺"
+                if isside == 1: horres = 90
+                # print("zitai", zitai, "\n距中心的水平距离为", l1, "\n以相机为基准的方位坐标为", pix0, "\n水平偏角为:", horres, "right" if horres > 0 else "left", "\n俯仰偏角为:", velres, stand_str)
+
                 cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
                 txt = int(horres) if not math.isnan(horres) else horres
-                cv2.putText(im1,
-                            'Cur: {} [H:{}Degree]'.format(['stand', 'lie down'][zitai], txt),
-                            (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, [(252, 218, 252), (255, 0, 0)][1], 2)
+                cv2.putText(im1, 'Cur: {} [H:{}Degree V:{}Degree]'.format(['stand', 'lie down'][zitai], txt, int(velres) if not math.isnan(velres) else velres), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, [(252, 218, 252), (255, 0, 0)][1], 2)
 
                 # Serial Block
-                if len(port_list) != 0 and False != ser.is_open and faFlag \
-                        and not math.isnan(l1) and not math.isnan(horres):
-                    # and l0 < 3 and not math.isnan(l1) and not math.isnan(horres):
+                if len(port_list) != 0 and False != ser.is_open and faFlag and not math.isnan(l1) and not math.isnan(horres) and not math.isnan(velres): # and l0 < 3
                     poststr = str(l1 * 1000) + "#" + str(horres * 1000) + "#" + str(zitai) # unit is millimeter
                     for i in range(len(pix0)): poststr += "#" + str(pix0[i] * 1000)
                     faNFlag = False
-                    print("发送成功")
+                    print("发送成功：", poststr)
                     _ = ser.write(poststr.encode())
                     sendStr = 'Send:{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt)
 
@@ -249,12 +228,10 @@ def detect(save_img=False):
             print("发送N")
             _ = ser.write(str("N").encode())
 
-        cv2.putText(im1, sendStr,
-                    (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
-                    [(252, 218, 252), (255, 0, 0)][1], 2)
-        if view_img:
-            if imshowFlag: cv2.imshow(str(p), im1)
-            client_obj.sendImg(im1)
+        cv2.putText(im1, sendStr, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, [(252, 218, 252), (255, 0, 0)][1], 2)
+        # if view_img:
+        if imshowFlag: cv2.imshow(str(p), im1)
+        client_obj.sendImg(im1)
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
