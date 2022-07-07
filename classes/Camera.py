@@ -10,6 +10,11 @@ import traceback
 # matplotlib.use('TkAgg')
 distortion1 = 0.1006
 distortion2 = -0.0998
+normList = []
+fixList = []
+
+def adaptx(x): return max(min(x,639),0)
+def adapty(y): return max(min(y,479),0)
 
 class myCamera():
     def __init__(self):
@@ -21,7 +26,8 @@ class myCamera():
 
         self.px = 640 / 2
         self.py = 480 / 2
-        self.temp = []
+        self.norm = []
+        self.fix = []
 
     def L(self, X):
         """
@@ -53,7 +59,7 @@ class myCamera():
         :param u: pixel
         :param v: pixel
         :param Z: meter
-        :return: XYZ
+        :return: XYZ meter
         '''
         U = np.array([[u], [v], [1]])
         A = np.append(U, -self.K1, axis=1)
@@ -72,10 +78,20 @@ class myCamera():
 
 class blockSize(myCamera):
 
-    def tempreturn(self):
-        # self.temp = np.append(self.temp, np.array([[[Z,max(Len, Wid)]]]))
-        # np.savetxt("./test.txt", self.temp)
-        return self.temp[-1]
+    def save(self, normElement, fixElement):
+        print(normElement, fixElement)
+        normList.append(normElement)
+        fixList.append(fixElement)
+        # blockSize_obj.tempShow(tempList)
+        np.savetxt("./datatest/X_liedown_norm.txt", np.asarray(normList), fmt='%.6f')
+        np.savetxt("./datatest/X_liedown_fix.txt", np.asarray(fixList), fmt='%.6f')
+
+    def deepreturn(self):
+        r1 = self.norm[-1]
+        r2 = self.fix[-1]
+        self.norm = []
+        self.fix = []
+        return r1, r2
 
     def specify(self, u, v, Z):
         '''
@@ -113,17 +129,22 @@ class blockSize(myCamera):
         Wid = np.linalg.norm(PLU - PLD)
         return max(Len, Wid)
 
-    def blockSize2(self, Point1, Point2, Ztemp, flagFix = True):
+    def blockSize2(self, Point1, Point2, vid_cap, C, isside_temp, flagFix = False):
         '''
         left\down\right\left four point to calculate, undistorted
-        :param Point1: pixel
-        :param Point2: pixel
+        :param Point1: pixel, [x, y] likely
+        :param Point2: pixel, [x, y] likely
         :param Ztemp: millimeter
+        :param isside_temp: isside_temp == 1: stand; isside_temp == -1: lie down; else 0
         :return: meter
         '''
-        P1 = copy.deepcopy(Point1)
-        P2 = copy.deepcopy(Point2)
-        Z = copy.deepcopy(Ztemp) * 1e-3
+        assert isside_temp == -1 or isside_temp == 0 or isside_temp == 1
+
+        cY, cX = C
+        Ztemp = int(vid_cap[int(adapty(cY))][int(adaptx(cX))])
+        P1 = np.reshape(copy.deepcopy(Point1), (2,1))
+        P2 = np.reshape(copy.deepcopy(Point2), (2,1))
+        Z = Ztemp * 1e-3 # meter
         P1 = np.reshape(P1, (2,1))
         P2 = np.reshape(P2, (2,1))
         PL = self.specify(P1[0, 0], (P1[1, 0] + P2[1,0])/2, Z)
@@ -132,7 +153,32 @@ class blockSize(myCamera):
         PR = self.specify(P2[0, 0], (P1[1,0]+P2[1, 0])/2, Z)
         Len = np.linalg.norm(PU - PD)
         Wid = np.linalg.norm(PL - PR)
-        self.temp.append([Z, max(Len, Wid)])
+        self.norm.append([Z, max(Len, Wid)])
+
+        cY, cX = C
+        Ztemp = int(vid_cap[int(adapty(cY))][int(adaptx(cX))])
+        P1 = np.reshape(copy.deepcopy(Point1), (2,1))
+        P2 = np.reshape(copy.deepcopy(Point2), (2,1))
+        Z = Ztemp # millimeter
+
+        i = 0
+        while not isside_temp == 0 and abs(Z - Ztemp) < 50:
+            Z = Ztemp
+            i += 1
+            Ztemp = int(vid_cap[int(adapty(cY - i))][int(adaptx(cX))]) if isside_temp == 1 else int(vid_cap[int(adapty(cY))][int(adaptx(cX + i))])
+            if isside_temp == 1 and int(adapty(cY - i)) < P1[1, 0] or isside_temp == -1 and int(adaptx(cX + i)) > P2[0, 0]: break
+            if int(adapty(cY - i)) == 479 or int(adapty(cY - i)) == 0 or int(adaptx(cX + i)) == 639 or int(adaptx(cX + i)) == 0: break
+        Z = Z * 1e-3 # meter
+        P1 = np.reshape(P1, (2, 1))
+        P2 = np.reshape(P2, (2, 1))
+        PL = self.specify(P1[0, 0], (P1[1, 0] + P2[1, 0]) / 2, Z)
+        PD = self.specify((P1[0, 0] + P2[0, 0]) / 2, P2[1, 0], Z)
+        PU = self.specify((P1[0, 0] + P2[0, 0]) / 2, P1[1, 0], Z)
+        PR = self.specify(P2[0, 0], (P1[1, 0] + P2[1, 0]) / 2, Z)
+        Len = np.linalg.norm(PU - PD)
+        Wid = np.linalg.norm(PL - PR)
+        self.fix.append([Z, max(Len, Wid)])
+
         PerError = 0 if not flagFix else self.Fix(Z)
         return max(Len, Wid) / (1 + PerError)
 
@@ -165,7 +211,7 @@ class blockSize(myCamera):
     def tempShow(self, temp=''):
         numStamp = 10
         sizeStamp = 0.355
-        if temp == '': temp = self.temp
+        if temp == '': temp = self.norm
         tempList = np.asarray(temp)
         numStamp, _ = np.shape(tempList)
         numStamp = min(numStamp, 100)
@@ -178,6 +224,8 @@ class blockSize(myCamera):
         except:
             traceback.print_exc()
             print("Num < numStamp.")
+
+
 
 
 if __name__ == "__main__":
