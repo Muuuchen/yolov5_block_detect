@@ -1,11 +1,10 @@
-import cv2
+import cv2, math
 import numpy as np
 from init import imshowFlag
 
-def adaptx(x):
-    return max(min(x,639),0)
-def adapty(x):
-    return max(min(x,479),0)
+def adaptx(x): return max(min(x,639),0)
+
+def adapty(y): return max(min(y,479),0)
 
 # Histogram equalization
 def histequ(gray, nlevels=256):
@@ -47,7 +46,7 @@ def MSE(tensor):
 def Closest_Block(imgdep, img, getpoint,colorflag):
     '''
 
-    :param imgdep:
+    :param imgdep: millimeter
     :param img:
     :param getpoint: center in white
     :param colorflag: Red 0 Blue 1
@@ -56,10 +55,10 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
                 cX, cY: the center of the white block
                 isside_temp: -1 means side lie down, 1 menas side stand
     '''
-    l = adaptx(int(getpoint[0][0]))
-    u = adapty(int(getpoint[0][1]))
-    r = adaptx(int(getpoint[0][2]))
-    d = adapty(int(getpoint[0][3]))
+    l = adaptx(int(getpoint[0][0])) # leftup x
+    u = adapty(int(getpoint[0][1])) # leftup y
+    r = adaptx(int(getpoint[0][2])) # rightdown x
+    d = adapty(int(getpoint[0][3])) # rightdown y
     if ((r-l)*(d-u)<=30*30):
         return float("inf"), 0, (l+r)/2,(u+d)/2, 0
 
@@ -121,12 +120,18 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
         else:
             return float("inf"),0,cX,cY,0
     elif imgdep[y1][x1]!=0:
-        stamp = 20
-        tensor1 = [imgdep[adapty(y1 + i * stamp)][x1] for i in range(-5, 6, 1)]
-        tensor2 = [imgdep[y1][adaptx(x1 + i * stamp)] for i in range(-5, 6, 1)]
-        print(tensor1)
-        print(tensor2)
-        if MSE(tensor1) > MSE(tensor2): return imgdep[y1][x1],1,cX,cY,1
+        '''
+                stamp = 20
+                tensor1 = [imgdep[adapty(y1 + i * stamp)][x1] for i in range(-5, 6, 1)]
+                tensor2 = [imgdep[y1][adaptx(x1 + i * stamp)] for i in range(-5, 6, 1)]
+                if MSE(tensor1) > MSE(tensor2): return imgdep[y1][x1],1,cX,cY,1
+                else: return imgdep[y1][x1], 1, cX, cY, -1
+                '''
+        # wid < len
+        if abs(getpoint[0, 2] - getpoint[0, 0]) <abs(getpoint[0, 1] - getpoint[0, 3]):
+            return imgdep[y1][x1], 1, cX, cY, 1
         else: return imgdep[y1][x1], 1, cX, cY, -1
+
+
     else:
         return float("inf"),0,cX,cY,1
