@@ -1,0 +1,30 @@
+import threading
+from threading import Lock,Thread
+import time,os
+Rlist = [1,2,3,4,5]
+Blist = [1,2,3,4,5]
+
+def statedefine():
+    global Rlist
+    global Blist
+    while(1):
+        print("ininb")
+        s = input()
+        if(s=='r' or s=='R'):
+            Rlist.pop()
+        if (s== 'b' or s == 'B'):
+            Blist.pop()
+        if(s == '-r' or s == '-R'):
+            Rlist.insert(len(Rlist),Rlist[-1]+1)
+        if (s == '-b' or s == '-B'):
+            Blist.insert(len(Blist),Blist[-1] + 1)
+
+
+t1 = threading.Thread(target = statedefine)
+t1.start()
+while(1):
+    print('hhhhhhhhhhhhhhhhhh')
+    time.sleep(1)
+    print('Red', Rlist)
+    time.sleep(1)
+    print('Blue', Blist)
