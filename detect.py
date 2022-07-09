@@ -107,10 +107,6 @@ def detect(save_img=False):
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
 
-    camera_coordinate = [0, 0, 0]
-    #ex = kalf.kalman()
-
-
     for path, img, im0s, vid_cap, imdal in dataset:
         # input img from datasets.py
         #imdal[i] is a matrix containing the depth data of ith frame
@@ -174,7 +170,7 @@ def detect(save_img=False):
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
                         getpoint = torch.tensor(xyxy).view(1, 4).numpy()
 
-                        sum1,flag_temp, cX,cY,isside_temp = Closest_Block(vid_cap[i], im0, getpoint,colorflag)
+                        sum1, flag_temp, cX, cY, isside_temp, mask = Closest_Block(vid_cap[i], im0, getpoint,colorflag)
                         diameter = blockSize_obj.blockSize2(getpoint[0,0:2], getpoint[0,2:4], vid_cap[i], np.array([cY, cX]), isside_temp) if True else blockSize_obj.blockSize(getpoint[0, 0:2], getpoint[0, 2:4], vid_cap[i][int((getpoint[0, 1]+getpoint[0, 3])/2)][int((getpoint[0, 0]+getpoint[0, 2])/2)], isside_temp)
 
                         if sum1 < depsum: # if maxSize <= diameter:
@@ -186,28 +182,31 @@ def detect(save_img=False):
                             flag = flag_temp
                             colorflag_dest = colorflag
                             isside = isside_temp
+                            finalMask = mask
 
                 #----------Modification Start---------
                 print("------")
                 if depsum == float("inf") or flag == 0: continue
                 if float(normElement[1]) > 1e-4 and float(fixElement[1]) > 1e-4 and False: blockSize_obj.save(normElement, fixElement)
-                print(sizeNearest(maxSize), maxSize)
+
 
                 cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
                 horres, velres, l0, pix0 = calculate_normal_vector(vid_cap[i], mx, my) if False else AngleCal(imdal[i], mx, my)
                 l1 = np.sqrt(l0**2 - pix0[1]**2)
                 F_B_pos = Front_and_Back_Cal(im0,imdal[i],mx,my,getpoint,colorflag_dest)
+                print(sizeNearest(maxSize, isside, velres), maxSize)
 
                 if isside == 1: print("side stand")
-                elif isside == -1 or velres < -40: print("side lie down")
+                elif isside == -1: print("side lie down")
+                elif abs(velres) > 40 and F_B_pos == 1: print("正面躺")
+                elif abs(velres) > 40 and F_B_pos == 0: print("反面躺")
                 elif F_B_pos == 1: print("正面立")
                 elif F_B_pos == 0: print("反面立")
-                else: print("不能判断立")
+                else: print("不能判断")
 
-                zitai = 0 if abs(velres) > 40 or isside == 1 else 1 # 1为躺, 0为立
-                stand_str = "位姿为立" if abs(velres) > 40 or isside == 1 else "位姿为躺"
+                zitai = 0 if not abs(velres) > 40 or isside == 1 else 1 # 1为躺, 0为立, which only for R1
                 if isside == 1: horres = 90
-                # print("zitai", zitai, "\n距中心的水平距离为", l1, "\n以相机为基准的方位坐标为", pix0, "\n水平偏角为:", horres, "right" if horres > 0 else "left", "\n俯仰偏角为:", velres, stand_str)
+                # print("zitai", zitai, "\n距中心的水平距离为", l1, "\n以相机为基准的方位坐标为", pix0, "\n水平偏角为:", horres, "right" if horres > 0 else "left", "\n俯仰偏角为:", velres, "位姿为立" if abs(velres) > 40 or isside == 1 else "位姿为躺")
 
                 cv2.circle(im1, (int(mx), int(my)), 8, (0, 101, 255), -1)
                 txt = int(horres) if not math.isnan(horres) else horres
@@ -229,7 +228,6 @@ def detect(save_img=False):
             _ = ser.write(str("N").encode())
 
         cv2.putText(im1, sendStr, (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, [(252, 218, 252), (255, 0, 0)][1], 2)
-        # if view_img:
         if imshowFlag: cv2.imshow(str(p), im1)
         client_obj.sendImg(im1)
 
