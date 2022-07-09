@@ -35,7 +35,6 @@ def myShow(imgdep=None, Colormask=None, imdep1=None, dilation=None, img=None):
 
 def MSE(tensor):
     arr = np.array(tensor)
-
     num = 1
     shape = np.shape(arr)
     for i in range(len(shape)): num *= shape[i]
@@ -54,13 +53,14 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
                 flag_temp: if 0, continue in the loop
                 cX, cY: the center of the white block
                 isside_temp: -1 means side lie down, 1 menas side stand
+                mask
     '''
     l = adaptx(int(getpoint[0][0])) # leftup x
     u = adapty(int(getpoint[0][1])) # leftup y
     r = adaptx(int(getpoint[0][2])) # rightdown x
     d = adapty(int(getpoint[0][3])) # rightdown y
     if ((r-l)*(d-u)<=30*30):
-        return float("inf"), 0, (l+r)/2,(u+d)/2, 0
+        return float("inf"), 0, (l+r)/2,(u+d)/2, 0, img
 
     # RB = np.array([[[129, 57, 84], [179, 255, 255]], [[48, 43, 0], [144, 255, 255]]], dtype=np.uint8)
     R1 = np.array([[0, 68, 59], [20, 255, 255]], dtype=np.uint8)
@@ -104,7 +104,7 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
     cY = (u+d)/2
 
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if len(contours) == 0: return float("inf"),0,cX,cY,1
+    if len(contours) == 0: return float("inf"),0,cX,cY,1, mask
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
     cv2.drawContours(img, contours, 0, (0, 255, 0), 3)
     myShow(imgdep=imgdep, Colormask=Colormask, imdep1=imdep1, dilation=dilation, img=img)
@@ -116,9 +116,9 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
         cY = int(M["m01"] / M["m00"])
         cv2.circle(img, (cX, cY), 7, (255, 255, 255), -1)
         if imgdep[cY][cX]!=0:
-            return imgdep[y1][x1], 1,cX,cY,0
+            return imgdep[y1][x1], 1,cX,cY,0, mask
         else:
-            return float("inf"),0,cX,cY,0
+            return float("inf"),0,cX,cY,0, mask
     elif imgdep[y1][x1]!=0:
         '''
                 stamp = 20
@@ -129,9 +129,9 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
                 '''
         # wid < len
         if abs(getpoint[0, 2] - getpoint[0, 0]) <abs(getpoint[0, 1] - getpoint[0, 3]):
-            return imgdep[y1][x1], 1, cX, cY, 1
-        else: return imgdep[y1][x1], 1, cX, cY, -1
+            return imgdep[y1][x1], 1, cX, cY, 1, mask
+        else: return imgdep[y1][x1], 1, cX, cY, -1, mask
 
 
     else:
-        return float("inf"),0,cX,cY,1
+        return float("inf"),0,cX,cY,1, mask
