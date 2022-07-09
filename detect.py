@@ -17,12 +17,18 @@ from AngleCalculate import AngleCal, calculate_normal_vector
 from ClosestBlock1 import Closest_Block
 from F_B_cal import Front_and_Back_Cal
 from classes import Camera
-from init import imshowFlag
+from init import imshowFlag, R2
 from blockManage import sizeNearest
 
 client_obj = client()
 blockSize_obj = Camera.blockSize()
 sendStr = 'No Serial'
+cameras = ['0', '8'] if R2 else ['0']
+with open('./utils/stream.txt', 'w') as f:
+    print("###")
+    for camera in cameras:
+        f.write(camera)
+        if not cameras.index(camera) + 1 == len(cameras): f.write('\n')
 
 '''
 def fabufa0():
