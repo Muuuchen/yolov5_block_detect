@@ -1,3 +1,5 @@
+import traceback
+
 import cv2, math
 import numpy as np
 from init import imshowFlag
@@ -34,13 +36,17 @@ def myShow(imgdep=None, Colormask=None, imdep1=None, dilation=None, img=None):
     if imshowFlag and not (img == None).any(): cv2.imshow("imgCB", img)
 
 def MSE(tensor):
-    arr = np.array(tensor)
-    num = 1
-    shape = np.shape(arr)
-    for i in range(len(shape)): num *= shape[i]
-    averArr = np.ones(shape) * np.average(arr)
+    try:
+        arr = np.array(tensor)
+        num = 1
+        shape = np.shape(arr)
+        for i in range(len(shape)): num *= shape[i]
+        averArr = np.ones(shape) * np.average(arr)
 
-    return np.linalg.norm(arr - averArr) / num
+        return np.linalg.norm(arr - averArr) / num
+    except:
+        traceback.print_exc()
+        return float("inf")
 
 def Closest_Block(imgdep, img, getpoint,colorflag):
     '''
@@ -52,7 +58,7 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
     :return:    sum1: depth
                 flag_temp: if 0, continue in the loop
                 cX, cY: the center of the white block
-                isside_temp: -1 means side lie down, 1 menas side stand
+                isside_temp: -1 means side lie down, 1 menas side stand, 0 else
                 mask
     '''
     l = adaptx(int(getpoint[0][0])) # leftup x
@@ -95,10 +101,10 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
     Rect2 = np.array([[l, d-5], [l, d], [r, d], [r, d-5]])
     Rect3 = np.array([[l, u], [l, d], [l+5, d], [l+5, u]])
     Rect4 = np.array([[r-5, u], [r-5, d], [r, d], [r, u]])
-    mask = cv2.fillConvexPoly(mask, Rect1, (0, 0, 0))
-    mask = cv2.fillConvexPoly(mask, Rect2, (0, 0, 0))
-    mask = cv2.fillConvexPoly(mask, Rect3, (0, 0, 0))
-    mask = cv2.fillConvexPoly(mask, Rect4, (0, 0, 0))
+    mask = cv2.fillConvexPoly(mask, Rect1, 0)
+    mask = cv2.fillConvexPoly(mask, Rect2, 0)
+    mask = cv2.fillConvexPoly(mask, Rect3, 0)
+    mask = cv2.fillConvexPoly(mask, Rect4, 0)
 
     cX = (l+r)/2
     cY = (u+d)/2
@@ -110,27 +116,41 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
     myShow(imgdep=imgdep, Colormask=Colormask, imdep1=imdep1, dilation=dilation, img=img)
 
     cont = contours[0]
+    norm = int(imgdep[y1][x1]) if not int(imgdep[y1][x1]) < 50 else float("inf")
     if (cv2.contourArea(cont) * 8 > (r-l) * (d-u)):
         M = cv2.moments(cont)
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         cv2.circle(img, (cX, cY), 7, (255, 255, 255), -1)
         if imgdep[cY][cX]!=0:
-            return imgdep[y1][x1], 1,cX,cY,0, mask
+            return norm, 1,cX,cY,0, mask
         else:
             return float("inf"),0,cX,cY,0, mask
     elif imgdep[y1][x1]!=0:
-        '''
-                stamp = 20
-                tensor1 = [imgdep[adapty(y1 + i * stamp)][x1] for i in range(-5, 6, 1)]
-                tensor2 = [imgdep[y1][adaptx(x1 + i * stamp)] for i in range(-5, 6, 1)]
-                if MSE(tensor1) > MSE(tensor2): return imgdep[y1][x1],1,cX,cY,1
-                else: return imgdep[y1][x1], 1, cX, cY, -1
-                '''
+        num = 10
+        tensory = []
+        tensorx = []
+
+        stampy = int((d - u) / (num + 2))
+        for i in range(-num, num + 1, 1):
+            if adapty(y1 + i * stampy) == 479 or adapty(y1 + i * stampy) == 0 or adaptx(x1) == 639 or adaptx(x1) == 0: continue
+            if adapty(y1 + i * stampy) < u or adaptx(y1 + i * stampy) > d: continue
+            if abs(int(imgdep[y1 + i * stampy][adaptx(x1)]) - norm) >= norm * 2 / 3: continue
+            tensory.append(imgdep[adapty(y1 + i * stampy)][x1])
+
+        stampx = int((r - l) / (2 * num + 10))
+        for i in range(-num, num + 1, 1):
+            if adapty(y1) == 479 or adapty(y1) == 0 or adaptx(x1 + i * stampx) == 639 or adaptx(x1 + i * stampx) == 0: continue
+            if adapty(x1 + i * stampx) < l or adaptx(x1 + i * stampx) > r: continue
+            if abs(int(imgdep[y1][adaptx(x1 + i * stampx)]) - norm) >= norm * 2 / 3: continue
+            tensorx.append(imgdep[y1][adaptx(x1 + i * stampx)])
+        if MSE(tensory) > MSE(tensorx): return imgdep[y1][x1],1,cX,cY,1, mask
+        else: return imgdep[y1][x1], 1, cX, cY, -1, mask
+
         # wid < len
         if abs(getpoint[0, 2] - getpoint[0, 0]) <abs(getpoint[0, 1] - getpoint[0, 3]):
-            return imgdep[y1][x1], 1, cX, cY, 1, mask
-        else: return imgdep[y1][x1], 1, cX, cY, -1, mask
+            return norm, 1, cX, cY, 1, mask
+        else: return norm, 1, cX, cY, -1, mask
 
 
     else:
