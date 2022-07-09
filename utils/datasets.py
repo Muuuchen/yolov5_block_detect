@@ -288,7 +288,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         # (对其流)
         align_to = rs.stream.color
         align = rs.align(align_to)  # 设置为其他类型的流,意思是我们允许深度流与其他流对齐
-        cap = cv2.VideoCapture(0)
+
 
 
         if os.path.isfile(sources):
@@ -298,36 +298,45 @@ class LoadStreams:  # multiple IP or RTSP cameras
             sources = [sources]
 
         n = len(sources)
+
         self.imgs = [None] * n
         self.imgsdepth = [None] * n
         self.depthaligned = [None] * n
 
         self.sources = sources
         for i, s in enumerate(sources):
-            # Start the thread to read frames from the video stream
-            print('%g/%g: %s... ' % (i + 1, n, s), end='')
-            #cap = cv2.VideoCapture(eval(s) if s.isnumeric() else s)
-            #assert cap.isOpened(), 'Failed to open %s' % s
+            cap = cv2.VideoCapture(int(s))
             w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = cap.get(cv2.CAP_PROP_FPS) % 100
-
-            frames = pipeline.wait_for_frames()  # 等待开启通道
-
-            aligned_frames = align.process(frames)  # 将深度框和颜色框对齐
-            depth_frame = aligned_frames.get_depth_frame()  # ?获得对齐后的帧数深度数据(图)
-            color_frame = aligned_frames.get_color_frame()  # ?获得对齐后的帧数颜色数据(图)
-            depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
-            img_color = np.asanyarray(color_frame.get_data())  # 把图像像素转化为数组
-            img_depth = np.asanyarray(depth_frame.get_data())  # 把图像像素转化为数组
-           # _, self.imgs[i] = cap.read()  # guarantee first frame
-            self.imgs[i] =img_color
-            self.imgsdepth[i] =img_depth
-            self.depthaligned[i] = depth_frame
-
-            pipeline.stop()
-            thread = Thread(target=self.update, args=([i, cap]), daemon=True)
             print(' success (%gx%g at %.2f FPS).' % (w, h, fps))
+            if i == 1:
+                _, img_color = cap.read()
+                # _, self.imgs[i] = cap.read()  # guarantee first frame
+                self.imgs[i] = img_color
+                self.imgsdepth[i] = None
+                self.depthaligned[i] = None
+
+            if i == 0:
+                # Start the thread to read frames from the video stream
+                print('%g/%g: %s... ' % (i + 1, n, s), end='')
+                #cap = cv2.VideoCapture(eval(s) if s.isnumeric() else s)
+                #assert cap.isOpened(), 'Failed to open %s' % s
+                frames = pipeline.wait_for_frames()  # 等待开启通道
+
+                aligned_frames = align.process(frames)  # 将深度框和颜色框对齐
+                depth_frame = aligned_frames.get_depth_frame()  # ?获得对齐后的帧数深度数据(图)
+                color_frame = aligned_frames.get_color_frame()  # ?获得对齐后的帧数颜色数据(图)
+                depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
+                img_color = np.asanyarray(color_frame.get_data())  # 把图像像素转化为数组
+                img_depth = np.asanyarray(depth_frame.get_data())  # 把图像像素转化为数组
+               # _, self.imgs[i] = cap.read()  # guarantee first frame
+                self.imgs[i] =img_color
+                self.imgsdepth[i] =img_depth
+                self.depthaligned[i] = depth_frame
+                pipeline.stop()
+
+            thread = Thread(target=self.update, args=([i, cap]), daemon=True)
             thread.start()
         print('')  # newline
 
@@ -338,50 +347,56 @@ class LoadStreams:  # multiple IP or RTSP cameras
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
 
     def update(self, index, cap):
-        # Read next stream frame in a daemon thread
-        n = 0
-        pc = rs.pointcloud()
-        points = rs.points()
+        if index == 1:
+            while(True):
+                _, img_color = cap.read()
+                self.imgs[index] = img_color
 
-        pipeline = rs.pipeline()  # 创建一个管道
-        config = rs.config()  # Create a config并配置要流​​式传输的管道。
-        config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-        # 使用选定的流参数显式启用设备流
+        if index == 0:
+            # Read next stream frame in a daemon thread
+            n = 0
+            pc = rs.pointcloud()
+            points = rs.points()
 
-        # Start streaming 开启流
-        pipe_profile = pipeline.start(config)
+            pipeline = rs.pipeline()  # 创建一个管道
+            config = rs.config()  # Create a config并配置要流​​式传输的管道。
+            config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+            config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+            # 使用选定的流参数显式启用设备流
 
-        # Create an align object 创建对其流对象
-        # rs.align allows us to perform alignment of depth frames to others frames
-        # The "align_to" is the stream type to which we plan to align depth frames.
-        # (对其流)
-        align_to = rs.stream.color
-        align = rs.align(align_to)  # 设置为其他类型的流,意思是我们允许深度流与其他流对齐
-        cap = cv2.VideoCapture(0)
-        while True:
-            # t0 = time.time()
-            frames = pipeline.wait_for_frames()  # 等待开启通道
-            aligned_frames = align.process(frames)  # 将深度框和颜色框对齐
-            depth_frame = aligned_frames.get_depth_frame()  # ?获得对齐后的帧数深度数据(图)
-            color_frame = aligned_frames.get_color_frame()  # ?获得对齐后的帧数颜色数据(图)
-            depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
-            img_color = np.asanyarray(color_frame.get_data())  # 把图像像素转化为数组
-            img_depth = np.asanyarray(depth_frame.get_data())  # 把图像像素转化为数组
-            n += 1
-            # _, self.imgs[index] = cap.read()
-            self.imgs[index] = img_color
-            self.imgsdepth[index] = img_depth
-            self.depthaligned[index] = depth_frame
-            #cap.grab()
-            if n == 1:  # read every 4th frame
-                #_, self.imgs[index] = cap.retrieve()
+            # Start streaming 开启流
+            pipe_profile = pipeline.start(config)
+
+            # Create an align object 创建对其流对象
+            # rs.align allows us to perform alignment of depth frames to others frames
+            # The "align_to" is the stream type to which we plan to align depth frames.
+            # (对其流)
+            align_to = rs.stream.color
+            align = rs.align(align_to)  # 设置为其他类型的流,意思是我们允许深度流与其他流对齐
+            while True:
+                frames = pipeline.wait_for_frames()  # 等待开启通道
+                aligned_frames = align.process(frames)  # 将深度框和颜色框对齐
+                depth_frame = aligned_frames.get_depth_frame()  # ?获得对齐后的帧数深度数据(图)
+                color_frame = aligned_frames.get_color_frame()  # ?获得对齐后的帧数颜色数据(图)
+                depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
+                img_color = np.asanyarray(color_frame.get_data())  # 把图像像素转化为数组
+                img_depth = np.asanyarray(depth_frame.get_data())  # 把图像像素转化为数组
+                n += 1
+                # _, self.imgs[index] = cap.read()
                 self.imgs[index] = img_color
                 self.imgsdepth[index] = img_depth
                 self.depthaligned[index] = depth_frame
-                n = 0
-            time.sleep(0.001)  # wait time
-        pipeline.stop()
+                #cap.grab()
+                '''
+                if n == 1:  # read every 4th frame
+                    #_, self.imgs[index] = cap.retrieve()
+                    self.imgs[index] = img_color
+                    self.imgsdepth[index] = img_depth
+                    self.depthaligned[index] = depth_frame
+                    n = 0
+                '''
+                time.sleep(0.001)  # wait time
+            pipeline.stop()
 
     def __iter__(self):
         self.count = -1
