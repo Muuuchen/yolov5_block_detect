@@ -22,6 +22,13 @@ def incolor(a, colorflag):
 
 
 def specify(depth_frame, xx, yy):
+    '''
+
+    :param depth_frame:
+    :param xx:
+    :param yy:
+    :return:
+    '''
     deep = depth_frame.get_distance(xx, yy)
     depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
     camera_coordinate = rs.rs2_deproject_pixel_to_point(depth_intrin, [xx, yy], deep)
@@ -29,10 +36,9 @@ def specify(depth_frame, xx, yy):
     dis = np.linalg.norm(camera_coordinate)
     return dis,camera_coordinate
 
-def adaptx(x):
-    return max(min(x,639),0)
-def adapty(x):
-    return max(min(x,479),0)
+def adaptx(x): return max(min(x,639),0)
+
+def adapty(y): return max(min(y,479),0)
 
 def Front_and_Back_Cal(imcol,imdep,mx,my,getpoint,colorflag):
     '''
