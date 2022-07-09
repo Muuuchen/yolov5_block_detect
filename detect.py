@@ -134,7 +134,7 @@ def detect(save_img=False):
             faNFlag = faFlag
 
         # Process detections
-        for i, det in enumerate(pred):  # detections per image
+        for i, det in enumerate(pred):  # detections per imag
             if webcam:  # batch_size >= 1
                 p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(), dataset.count
             else:
@@ -222,6 +222,8 @@ def detect(save_img=False):
                     sendStr = 'Send:{}[H:{}Degree]'.format(['stand', 'lie down'][zitai], txt)
 
 
+        ''''''
+
         if faNFlag:
             sendStr = str("Send:N")
             print("发送N")
@@ -257,7 +259,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='weights/best.pt', help='model.pt path(s)') #更改预设以改变网络类型
-    parser.add_argument('--source', type=str, default= '0', help='source')  # file/folder, 0 for webcam 输入路径
+    parser.add_argument('--source', type=str, default= './utils/stream.txt', help='source')  # file/folder, 0 for webcam 输入路径
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.55, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.55, help='IOU threshold for NMS') #非极大值抑制 iou
