@@ -129,7 +129,7 @@ class blockSize(myCamera):
         Wid = np.linalg.norm(PLU - PLD)
         return max(Len, Wid)
 
-    def blockSize2(self, Point1, Point2, vid_cap, C, isside_temp, flagFix = False):
+    def blockSize2(self, Point1, Point2, vid_cap, C, isside_temp):
         '''
         left\down\right\left four point to calculate, undistorted
         :param Point1: pixel, [x, y] likely
@@ -145,8 +145,6 @@ class blockSize(myCamera):
         P1 = np.reshape(copy.deepcopy(Point1), (2,1))
         P2 = np.reshape(copy.deepcopy(Point2), (2,1))
         Z = Ztemp * 1e-3 # meter
-        P1 = np.reshape(P1, (2,1))
-        P2 = np.reshape(P2, (2,1))
         PL = self.specify(P1[0, 0], (P1[1, 0] + P2[1,0])/2, Z)
         PD = self.specify((P1[0,0]+P2[0, 0])/2, P2[1, 0], Z)
         PU = self.specify((P1[0,0]+P2[0, 0])/2, P1[1, 0], Z)
@@ -169,8 +167,6 @@ class blockSize(myCamera):
             if isside_temp == 1 and int(adapty(cY - i)) < P1[1, 0] or isside_temp == -1 and int(adaptx(cX + i)) > P2[0, 0]: break
             if int(adapty(cY - i)) == 479 or int(adapty(cY - i)) == 0 or int(adaptx(cX + i)) == 639 or int(adaptx(cX + i)) == 0: break
         Z = Z * 1e-3 # meter
-        P1 = np.reshape(P1, (2, 1))
-        P2 = np.reshape(P2, (2, 1))
         PL = self.specify(P1[0, 0], (P1[1, 0] + P2[1, 0]) / 2, Z)
         PD = self.specify((P1[0, 0] + P2[0, 0]) / 2, P2[1, 0], Z)
         PU = self.specify((P1[0, 0] + P2[0, 0]) / 2, P1[1, 0], Z)
@@ -179,8 +175,7 @@ class blockSize(myCamera):
         Wid = np.linalg.norm(PL - PR)
         self.fix.append([Z, max(Len, Wid)])
 
-        PerError = 0 if not flagFix else self.Fix(Z)
-        return max(Len, Wid) / (1 + PerError)
+        return [Len, Wid]
 
 
 
