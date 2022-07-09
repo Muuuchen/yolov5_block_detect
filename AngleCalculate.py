@@ -81,7 +81,7 @@ obj = myCamera()
 def calculate_normal_vector(imgdep, mx, my, num = 10):
     '''
     always be matrix (column vector) type in calculations and returns, but fetch by array
-    Ax + By + C = z
+    Ax + By + Cz = 1
 
     :param imgdep: millimeter
     :param mx: pixel
