@@ -204,7 +204,7 @@ def detect(save_img=False):
                 elif F_B_pos == 0: print("反面立")
                 else: print("不能判断")
 
-                zitai = 0 if not abs(velres) > 40 or isside == 1 else 1 # 1为躺, 0为立, which only for R1
+                zitai = 0 if isside == 0 and not abs(velres) > 40 or isside == 1 else 1 # 1为躺, 0为立, which only for R1
                 if isside == 1: horres = 90
                 # print("zitai", zitai, "\n距中心的水平距离为", l1, "\n以相机为基准的方位坐标为", pix0, "\n水平偏角为:", horres, "right" if horres > 0 else "left", "\n俯仰偏角为:", velres, "位姿为立" if abs(velres) > 40 or isside == 1 else "位姿为躺")
 
