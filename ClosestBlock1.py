@@ -148,8 +148,7 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
         else: return imgdep[y1][x1], 1, cX, cY, -1, mask
 
         # wid < len
-        if abs(getpoint[0, 2] - getpoint[0, 0]) <abs(getpoint[0, 1] - getpoint[0, 3]):
-            return norm, 1, cX, cY, 1, mask
+        if abs(getpoint[0, 2] - getpoint[0, 0]) <abs(getpoint[0, 1] - getpoint[0, 3]): return norm, 1, cX, cY, 1, mask
         else: return norm, 1, cX, cY, -1, mask
 
 
