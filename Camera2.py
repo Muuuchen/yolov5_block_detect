@@ -3,7 +3,7 @@ import cv2
 from classes.hsvMan import hsvRange
 R1 = np.array([[0, 68, 59], [20, 255, 255]], dtype=np.uint8)
 R2 = np.array([[150, 68, 59], [179, 255, 255]], dtype=np.uint8)
-B = np.array([[48,122, 0], [144, 255, 255]], dtype=np.uint8)
+B = np.array([[48,160, 0], [144, 255, 255]], dtype=np.uint8)
 
 def adaptx(x): return max(min(x,639),0)
 
