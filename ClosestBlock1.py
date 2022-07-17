@@ -72,7 +72,7 @@ def Closest_Block(imgdep, img, getpoint,colorflag):
 
     R1 = np.array([[0, 68, 59], [20, 255, 255]], dtype=np.uint8)  # top
     R2 = np.array([[150, 68, 59], [179, 255, 255]], dtype=np.uint8)  # side
-    B = np.array([[48, 43, 0], [144, 255, 255]], dtype=np.uint8)
+    B = np.array([[48, 160, 0], [144, 255, 255]], dtype=np.uint8)
     B1 = np.array([[48, 43, 0], [99, 255, 255]], dtype=np.uint8)  # top
     B2 = np.array([[100, 43, 0], [144, 255, 255]], dtype=np.uint8)  # side
 
