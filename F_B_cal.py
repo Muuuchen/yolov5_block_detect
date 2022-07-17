@@ -7,7 +7,7 @@ from classes.hsvMan import hsvRange
 R1 = hsvRange([[0, 68, 59], [20, 255, 255]])
 R2 = hsvRange([[150, 68, 59], [179, 255, 255]])
 
-B  = hsvRange([[48, 43, 0], [144, 255, 255]])
+B  = hsvRange([[48, 160, 0], [144, 255, 255]])
 
 
 def incolor(a, colorflag):
